@@ -25,6 +25,15 @@ function safeString(v) {
   return typeof v === 'string' ? v : String(v);
 }
 
+function normalizeAuthHeader(v) {
+  return safeString(v).trim();
+}
+
+function stripBearer(v) {
+  const s = normalizeAuthHeader(v);
+  return s.toLowerCase().startsWith('bearer ') ? s.slice(7).trim() : s;
+}
+
 function extractSignature(evt) {
   return safeString(evt?.signature || evt?.transactionSignature || evt?.id);
 }
@@ -81,8 +90,10 @@ module.exports = async function handler(req, res) {
     if (!HELIUS_WEBHOOK_AUTH) {
       return json(res, 500, { error: 'Server misconfigured: missing HELIUS_WEBHOOK_AUTH' });
     }
-    const auth = safeString(req.headers?.authorization);
-    if (auth !== HELIUS_WEBHOOK_AUTH) {
+    const auth = normalizeAuthHeader(req.headers?.authorization);
+    const expected = normalizeAuthHeader(HELIUS_WEBHOOK_AUTH);
+    // Accept either exact match OR token match (allows env var to be set with or without "Bearer " prefix)
+    if (auth !== expected && stripBearer(auth) !== stripBearer(expected)) {
       return json(res, 401, { error: 'Unauthorized' });
     }
 
