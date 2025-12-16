@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -32,6 +33,13 @@ function normalizeAuthHeader(v) {
 function stripBearer(v) {
   const s = normalizeAuthHeader(v);
   return s.toLowerCase().startsWith('bearer ') ? s.slice(7).trim() : s;
+}
+
+function fingerprintAuthToken(v) {
+  // Produce a short, non-reversible fingerprint for debugging auth mismatches without leaking secrets.
+  const token = stripBearer(v);
+  if (!token) return '';
+  return crypto.createHash('sha256').update(token).digest('hex').slice(0, 12);
 }
 
 function extractSignature(evt) {
@@ -94,7 +102,12 @@ module.exports = async function handler(req, res) {
     const expected = normalizeAuthHeader(HELIUS_WEBHOOK_AUTH);
     // Accept either exact match OR token match (allows env var to be set with or without "Bearer " prefix)
     if (auth !== expected && stripBearer(auth) !== stripBearer(expected)) {
-      return json(res, 401, { error: 'Unauthorized' });
+      return json(res, 401, {
+        error: 'Unauthorized',
+        hint: 'Authorization header does not match HELIUS_WEBHOOK_AUTH (Production). Ensure env var is set without quotes and redeployed.',
+        expectedFingerprint: fingerprintAuthToken(expected),
+        receivedFingerprint: fingerprintAuthToken(auth),
+      });
     }
 
     const body = await readJsonBody(req);
