@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>MICROS | Raffles</title>
+    
+    <!-- SEO & Social Meta Tags -->
+    <meta name="description" content="Join the Micros Raffle - Win exclusive NFTs and tokens. Create your own raffles and grow the Micros community.">
+    <meta name="keywords" content="Solana, NFT, Raffle, Micros, Crypto, Gaming">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://raffles.microsnft.xyz/">
+    <meta property="og:title" content="MICROS | Raffles">
+    <meta property="og:description" content="Win exclusive NFTs and tokens on the Micros Raffle platform.">
+    <meta property="og:image" content="./assets/micros.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://raffles.microsnft.xyz/">
+    <meta property="twitter:title" content="MICROS | Raffles">
+    <meta property="twitter:description" content="Win exclusive NFTs and tokens on the Micros Raffle platform.">
+    <meta property="twitter:image" content="./assets/micros.png">
+
+    <link rel="icon" href="./assets/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://esm.sh/@solana/wallet-adapter-react-ui/styles.css">
+    <link rel="stylesheet" href="./styles.css?v=7">
+    <link rel="stylesheet" href="./StaggeredMenu.css?v=7">
+    <link rel="stylesheet" href="./raffle.css?v=7">
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18",
+          "react-dom/client": "https://esm.sh/react-dom@18/client"
+        }
+      }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
+    <script>
+      // Fix for Solana wallet adapter requirements
+      window.process = { env: { NODE_ENV: 'production' }, nextTick: (cb) => setTimeout(cb, 0) };
+      try {
+        window.Buffer = window.Buffer || (typeof buffer !== 'undefined' ? buffer.Buffer : undefined);
+      } catch (e) {
+        console.error("Buffer polyfill error:", e);
+      }
+    </script>
+    <script type="module" src="./raffle.js?v=7"></script>
+  </head>
+  <body>
+    <main id="main" class="page page--raffle">
+      <div id="root"></div>
+    </main>
+  </body>
+</html>
+
