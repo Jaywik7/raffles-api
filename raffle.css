@@ -1509,70 +1509,19 @@
   background: linear-gradient(135deg, #0f1423 0%, #1a1f3d 100%) !important;
   border: 2px solid #5CFCA9 !important;
   max-width: 500px !important;
+  max-height: 85vh !important;
   text-align: center;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px !important;
+  box-shadow: 0 0 50px rgba(92, 252, 169, 0.2) !important;
 }
 
 .winner-modal-content {
-  padding: 40px 20px;
-}
-
-.winner-crown {
-  font-size: 60px;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 0 20px rgba(92, 252, 169, 0.5));
-}
-
-.winner-modal-content h1 {
-  font-size: 32px;
-  font-weight: 900;
-  color: #5CFCA9;
-  margin-bottom: 10px;
-  letter-spacing: 2px;
-}
-
-.winner-sub {
-  font-size: 18px;
-  opacity: 0.8;
-  margin-bottom: 30px;
-}
-
-.winner-prize-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.winner-prize-card img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 15px;
-}
-
-.winner-prize-card h3 {
-  font-size: 20px;
-  margin: 0;
-  color: #fff;
-}
-
-/* Winner Modal Styles */
-.winner-backdrop {
-  background: rgba(0, 0, 0, 0.85) !important;
-  backdrop-filter: blur(15px) !important;
-}
-
-.winner-modal {
-  background: linear-gradient(135deg, #0f1423 0%, #1a1f3d 100%) !important;
-  border: 2px solid #5CFCA9 !important;
-  max-width: 500px !important;
-  text-align: center;
-}
-
-.winner-modal-content {
-  padding: 40px 20px;
+  padding: 40px 30px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .winner-crown {
