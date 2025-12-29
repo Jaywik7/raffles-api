@@ -153,6 +153,28 @@ function WinnerModal({ raffle, onClose }) {
   );
 }
 
+function LiveActivityFeed({ activities }) {
+  if (activities.length === 0) return null;
+
+  return React.createElement('div', { className: 'live-activity-feed' },
+    React.createElement('div', { className: 'activity-header' },
+      React.createElement('span', { className: 'activity-dot' }),
+      'Live Activity'
+    ),
+    React.createElement('div', { className: 'activity-list' },
+      activities.map((act, i) => (
+        React.createElement('div', { key: i, className: 'activity-item' },
+          React.createElement('span', { className: 'activity-wallet' }, act.wallet.slice(0, 4) + '...' + act.wallet.slice(-4)),
+          ' bought ',
+          React.createElement('span', { className: 'activity-count' }, `${act.quantity} ticket${act.quantity > 1 ? 's' : ''}`),
+          ' for ',
+          React.createElement('span', { className: 'activity-raffle' }, act.raffleName)
+        )
+      ))
+    )
+  );
+}
+
 function RaffleAppInner() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -183,6 +205,10 @@ function RaffleAppInner() {
   const [sortBy, setSortBy] = useState('Newest');
   const [selectedRaffleDetails, setSelectedRaffleDetails] = useState(null);
   const [winningRaffle, setWinningRaffle] = useState(null);
+  const [modalTab, setModalTab] = useState('details'); // 'details' or 'participants'
+  const [participants, setParticipants] = useState([]);
+  const [liveActivity, setLiveActivity] = useState([]);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
 
   const notify = (message, type = 'success', persistent = false) => {
     setNotification({ message, type, persistent });
@@ -305,9 +331,66 @@ function RaffleAppInner() {
     }
   };
 
+  const fetchParticipants = async (raffleId) => {
+    setIsLoadingParticipants(true);
+    try {
+      const { data, error } = await supabase
+        .from('entries')
+        .select('wallet_address, quantity')
+        .eq('raffle_id', raffleId);
+
+      if (error) throw error;
+
+      // Group by wallet and sum quantities for a clean leaderboard
+      const grouped = data.reduce((acc, curr) => {
+        acc[curr.wallet_address] = (acc[curr.wallet_address] || 0) + curr.quantity;
+        return acc;
+      }, {});
+
+      const sorted = Object.entries(grouped)
+        .map(([wallet, tickets]) => ({ wallet, tickets }))
+        .sort((a, b) => b.tickets - a.tickets);
+
+      setParticipants(sorted);
+    } catch (e) {
+      console.error('Error fetching participants:', e);
+    } finally {
+      setIsLoadingParticipants(false);
+    }
+  };
+
+  const fetchLiveActivity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('entries')
+        .select('wallet_address, quantity, raffles(name)')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setLiveActivity(data.map(item => ({
+        wallet: item.wallet_address,
+        quantity: item.quantity,
+        raffleName: item.raffles?.name || 'a raffle'
+      })));
+    } catch (e) {
+      console.error('Error fetching activity:', e);
+    }
+  };
+
   useEffect(() => {
     fetchRaffles();
-  }, []);
+    fetchLiveActivity();
+    const interval = setInterval(fetchLiveActivity, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, [publicKey]);
+
+  useEffect(() => {
+    if (selectedRaffleDetails) {
+      setModalTab('details');
+      fetchParticipants(selectedRaffleDetails.id);
+    }
+  }, [selectedRaffleDetails]);
 
   useEffect(() => {
     if (publicKey) {
@@ -861,67 +944,96 @@ function RaffleAppInner() {
     selectedRaffleDetails && React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: () => setSelectedRaffleDetails(null) },
       React.createElement('div', { className: 'nft-selection-modal detail-modal', onClick: e => e.stopPropagation() },
         React.createElement('div', { className: 'modal-header' },
-          React.createElement('h2', null, selectedRaffleDetails.name),
+          React.createElement('div', { className: 'modal-tabs' },
+            React.createElement('button', { 
+              className: `modal-tab ${modalTab === 'details' ? 'active' : ''}`,
+              onClick: () => setModalTab('details')
+            }, 'Prize Details'),
+            React.createElement('button', { 
+              className: `modal-tab ${modalTab === 'participants' ? 'active' : ''}`,
+              onClick: () => setModalTab('participants')
+            }, 'Participants')
+          ),
           React.createElement('button', { className: 'modal-close', onClick: () => setSelectedRaffleDetails(null) }, '×')
         ),
         React.createElement('div', { className: 'modal-body' },
-          React.createElement('div', { className: 'raffle-detail-content' },
-            React.createElement('div', { className: 'raffle-detail-image-wrap' },
-              React.createElement('img', { src: selectedRaffleDetails.image, alt: selectedRaffleDetails.name, className: 'raffle-detail-image' }),
-              selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'raffle-prize-badge large' }, 
-                `+ ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`
-              )
-            ),
-            React.createElement('div', { className: 'raffle-detail-info' },
-              React.createElement('div', { className: 'detail-stats-grid' },
-                React.createElement('div', { className: 'detail-stat-item' },
-                  React.createElement('label', null, 'Ticket Price'),
-                  React.createElement('span', null, selectedRaffleDetails.price, ' SOL')
-                ),
-                React.createElement('div', { className: 'detail-stat-item' },
-                  React.createElement('label', null, 'Tickets Sold'),
-                  React.createElement('span', null, selectedRaffleDetails.sold, ' / ', selectedRaffleDetails.supply)
-                ),
-                React.createElement('div', { className: 'detail-stat-item' },
-                  React.createElement('label', null, 'Time Left'),
-                  React.createElement(CountdownTimer, { endsAt: selectedRaffleDetails.endsAt })
-                ),
-                React.createElement('div', { className: 'detail-stat-item' },
-                  React.createElement('label', null, 'Limit Per Wallet'),
-                  React.createElement('span', null, selectedRaffleDetails.limitPerWallet || 'No limit')
+          modalTab === 'details' ? (
+            React.createElement('div', { className: 'raffle-detail-content' },
+              React.createElement('div', { className: 'raffle-detail-image-wrap' },
+                React.createElement('img', { src: selectedRaffleDetails.image, alt: selectedRaffleDetails.name, className: 'raffle-detail-image' }),
+                selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'raffle-prize-badge large' }, 
+                  `+ ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`
                 )
               ),
-              React.createElement('div', { className: 'detail-description' },
-                React.createElement('h4', null, 'Prize Details'),
-                React.createElement('div', { className: 'prize-bullet-list' },
-                  React.createElement('div', { className: 'prize-bullet' }, `• ${selectedRaffleDetails.name}`),
-                  selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'prize-bullet' }, `• ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`)
+              React.createElement('div', { className: 'raffle-detail-info' },
+                React.createElement('div', { className: 'detail-stats-grid' },
+                  React.createElement('div', { className: 'detail-stat-item' },
+                    React.createElement('label', null, 'Ticket Price'),
+                    React.createElement('span', null, selectedRaffleDetails.price, ' SOL')
+                  ),
+                  React.createElement('div', { className: 'detail-stat-item' },
+                    React.createElement('label', null, 'Tickets Sold'),
+                    React.createElement('span', null, selectedRaffleDetails.sold, ' / ', selectedRaffleDetails.supply)
+                  ),
+                  React.createElement('div', { className: 'detail-stat-item' },
+                    React.createElement('label', null, 'Time Left'),
+                    React.createElement(CountdownTimer, { endsAt: selectedRaffleDetails.endsAt })
+                  ),
+                  React.createElement('div', { className: 'detail-stat-item' },
+                    React.createElement('label', null, 'Limit Per Wallet'),
+                    React.createElement('span', null, selectedRaffleDetails.limitPerWallet || 'No limit')
+                  )
                 ),
-                React.createElement('div', { className: 'detail-actions' },
-                  React.createElement('div', { className: 'raffle-buy-row detail-buy-row' },
-                    React.createElement('div', { className: 'raffle-quantity-selector' },
+                React.createElement('div', { className: 'detail-description' },
+                  React.createElement('h4', null, 'Prize Details'),
+                  React.createElement('div', { className: 'prize-bullet-list' },
+                    React.createElement('div', { className: 'prize-bullet' }, `• ${selectedRaffleDetails.name}`),
+                    selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'prize-bullet' }, `• ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`)
+                  ),
+                  React.createElement('div', { className: 'detail-actions' },
+                    React.createElement('div', { className: 'raffle-buy-row detail-buy-row' },
+                      React.createElement('div', { className: 'raffle-quantity-selector' },
+                        React.createElement('button', { 
+                          onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, (prev[selectedRaffleDetails.id] || 1) - 1) }))
+                        }, '-'),
+                        React.createElement('input', { 
+                          type: 'number', 
+                          value: buyQuantities[selectedRaffleDetails.id] || 1,
+                          onChange: (e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, val) }));
+                          }
+                        }),
+                        React.createElement('button', { 
+                          onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: (prev[selectedRaffleDetails.id] || 1) + 1 }))
+                        }, '+')
+                      ),
                       React.createElement('button', { 
-                        onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, (prev[selectedRaffleDetails.id] || 1) - 1) }))
-                      }, '-'),
-                      React.createElement('input', { 
-                        type: 'number', 
-                        value: buyQuantities[selectedRaffleDetails.id] || 1,
-                        onChange: (e) => {
-                          const val = parseInt(e.target.value) || 1;
-                          setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, val) }));
-                        }
-                      }),
-                      React.createElement('button', { 
-                        onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: (prev[selectedRaffleDetails.id] || 1) + 1 }))
-                      }, '+')
-                    ),
-                    React.createElement('button', { 
-                      className: 'raffle-btn-buy large',
-                      onClick: () => { handleBuyTicket(selectedRaffleDetails); setSelectedRaffleDetails(null); },
-                      disabled: isBuying
-                    }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`)
+                        className: 'raffle-btn-buy large',
+                        onClick: () => { handleBuyTicket(selectedRaffleDetails); setSelectedRaffleDetails(null); },
+                        disabled: isBuying
+                      }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`)
+                    )
                   )
                 )
+              )
+            )
+          ) : (
+            React.createElement('div', { className: 'raffle-participants-list' },
+              isLoadingParticipants ? (
+                React.createElement('div', { className: 'modal-loading' }, 'Loading participants...')
+              ) : participants.length > 0 ? (
+                React.createElement('div', { className: 'leaderboard-grid' },
+                  participants.map((p, index) => (
+                    React.createElement('div', { key: index, className: 'leaderboard-row' },
+                      React.createElement('span', { className: 'leader-rank' }, `#${index + 1}`),
+                      React.createElement('span', { className: 'leader-wallet' }, p.wallet.slice(0, 6) + '...' + p.wallet.slice(-4)),
+                      React.createElement('span', { className: 'leader-tickets' }, `${p.tickets} tickets`)
+                    ))
+                  )
+                )
+              ) : (
+                React.createElement('div', { className: 'modal-empty' }, 'No participants yet. Be the first to enter!')
               )
             )
           )
@@ -970,6 +1082,7 @@ function RaffleAppInner() {
     React.createElement('main', { className: 'raffle-site' },
       React.createElement(GalaxyBackground, null),
       React.createElement('div', { className: 'raffle-container' },
+        React.createElement(LiveActivityFeed, { activities: liveActivity }),
         React.createElement('header', { className: 'raffle-header' },
           React.createElement('nav', { className: 'raffle-nav' },
             activeTab === 'Create' ? (
