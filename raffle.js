@@ -4,6 +4,7 @@ import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } f
 import { useWallet, useConnection } from 'https://esm.sh/@solana/wallet-adapter-react?deps=react@18';
 import { WalletMultiButton } from 'https://esm.sh/@solana/wallet-adapter-react-ui?deps=react@18';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
+import confetti from 'https://esm.sh/canvas-confetti';
 import StaggeredMenu from './StaggeredMenu.js';
 import { SolanaProvider } from './SolanaProvider.js';
 
@@ -111,6 +112,47 @@ function CountdownTimer({ endsAt }) {
   return React.createElement('span', { className: 'countdown-value' }, timeLeft);
 }
 
+function WinnerModal({ raffle, onClose }) {
+  useEffect(() => {
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10001 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return React.createElement('div', { className: 'nft-selection-modal-backdrop winner-backdrop', onClick: onClose },
+    React.createElement('div', { className: 'nft-selection-modal winner-modal', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'winner-modal-content' },
+        React.createElement('div', { className: 'winner-crown' }, '👑'),
+        React.createElement('h1', null, 'CONGRATULATIONS!'),
+        React.createElement('p', { className: 'winner-sub' }, 'You just won'),
+        React.createElement('div', { className: 'winner-prize-card' },
+          React.createElement('img', { src: raffle.image, alt: raffle.name }),
+          React.createElement('h3', null, raffle.name)
+        ),
+        React.createElement('button', { className: 'raffle-btn-buy large', onClick: onClose }, 'Claim Your Prize')
+      )
+    )
+  );
+}
+
 function RaffleAppInner() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -140,6 +182,7 @@ function RaffleAppInner() {
   const [userPurchasedCounts, setUserPurchasedCounts] = useState({}); // Tracking tickets per wallet locally
   const [sortBy, setSortBy] = useState('Newest');
   const [selectedRaffleDetails, setSelectedRaffleDetails] = useState(null);
+  const [winningRaffle, setWinningRaffle] = useState(null);
 
   const notify = (message, type = 'success', persistent = false) => {
     setNotification({ message, type, persistent });
@@ -223,6 +266,37 @@ function RaffleAppInner() {
 
       setActiveRaffles(transformed.filter(r => r.status === 'active' && new Date(r.endsAt) > new Date()));
       setPastRaffles(transformed.filter(r => r.status === 'ended' || new Date(r.endsAt) <= new Date()));
+
+      // --- TWO-LEVEL CELEBRATION LOGIC ---
+      if (publicKey) {
+        const userAddress = publicKey.toBase58();
+        const seenWinners = JSON.parse(localStorage.getItem('micros_seen_winners') || '[]');
+        
+        // Find if user won any raffle they haven't seen the celebration for yet
+        const newWin = transformed.find(r => 
+          r.winner === userAddress && 
+          !seenWinners.includes(r.id)
+        );
+
+        if (newWin) {
+          setWinningRaffle(newWin);
+          // Save to seen winners
+          localStorage.setItem('micros_seen_winners', JSON.stringify([...seenWinners, newWin.id]));
+        } else {
+          // If not a winner, check for ANY newly drawn winner for the community celebration
+          const recentlyEnded = transformed.find(r => 
+            r.winner && 
+            r.winner !== userAddress &&
+            !seenWinners.includes(r.id)
+          );
+
+          if (recentlyEnded) {
+            notify(`A winner has been drawn for ${recentlyEnded.name}! 🎊`, 'success');
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            localStorage.setItem('micros_seen_winners', JSON.stringify([...seenWinners, recentlyEnded.id]));
+          }
+        }
+      }
     } catch (e) {
       console.error('Error fetching raffles:', e);
       notify('Failed to load raffles from database.', 'error');
@@ -860,6 +934,11 @@ function RaffleAppInner() {
       React.createElement('span', { className: 'notification-message' }, notification.message),
       React.createElement('button', { className: 'notification-close', onClick: () => setNotification(null) }, '×')
     ),
+    // Winner Celebration Modal
+    winningRaffle && React.createElement(WinnerModal, { 
+      raffle: winningRaffle, 
+      onClose: () => setWinningRaffle(null) 
+    }),
     React.createElement(StaggeredMenu, {
       className: scrolled ? 'is-scrolled' : '',
       position: 'right',
