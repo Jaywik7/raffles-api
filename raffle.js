@@ -154,24 +154,54 @@ function WinnerModal({ raffle, onClose }) {
 }
 
 function LiveActivityFeed({ activities }) {
-  if (activities.length === 0) return null;
+  const [displayActivities, setDisplayActivities] = React.useState([]);
+  const lastProcessedRef = React.useRef(new Set());
 
-  return React.createElement('div', { className: 'live-activity-feed' },
-    React.createElement('div', { className: 'activity-header' },
-      React.createElement('span', { className: 'activity-dot' }),
-      'Live Activity'
-    ),
-    React.createElement('div', { className: 'activity-list' },
-      activities.map((act, i) => (
-        React.createElement('div', { key: i, className: 'activity-item' },
+  React.useEffect(() => {
+    // Only process new activities that we haven't seen in this session
+    const newItems = activities.filter(act => {
+      const key = `${act.wallet}-${act.raffleName}-${act.quantity}`;
+      if (!lastProcessedRef.current.has(key)) {
+        lastProcessedRef.current.add(key);
+        return true;
+      }
+      return false;
+    });
+
+    if (newItems.length > 0) {
+      // Add new items to the display queue
+      const now = Date.now();
+      const itemsToAdd = newItems.map(item => ({ ...item, id: now + Math.random(), timestamp: now }));
+      
+      setDisplayActivities(prev => [...prev, ...itemsToAdd]);
+
+      // Remove each item after 5 seconds
+      itemsToAdd.forEach(item => {
+        setTimeout(() => {
+          setDisplayActivities(prev => prev.filter(a => a.id !== item.id));
+        }, 5000);
+      });
+    }
+  }, [activities]);
+
+  if (displayActivities.length === 0) return null;
+
+  return React.createElement('div', { className: 'live-activity-toast-container' },
+    displayActivities.map((act) => (
+      React.createElement('div', { key: act.id, className: 'activity-toast' },
+        React.createElement('div', { className: 'activity-header' },
+          React.createElement('span', { className: 'activity-dot' }),
+          'Live Activity'
+        ),
+        React.createElement('div', { className: 'activity-item' },
           React.createElement('span', { className: 'activity-wallet' }, act.wallet.slice(0, 4) + '...' + act.wallet.slice(-4)),
           ' bought ',
           React.createElement('span', { className: 'activity-count' }, `${act.quantity} ticket${act.quantity > 1 ? 's' : ''}`),
           ' for ',
           React.createElement('span', { className: 'activity-raffle' }, act.raffleName)
         )
-      ))
-    )
+      )
+    ))
   );
 }
 
@@ -1177,25 +1207,38 @@ function RaffleAppInner() {
                         )
                       ),
                       React.createElement('div', { className: 'raffle-buy-row' },
-                        React.createElement('div', { className: 'raffle-quantity-selector' },
+                        React.createElement('div', { 
+                          className: 'raffle-quantity-selector',
+                          onClick: (e) => e.stopPropagation()
+                        },
                           React.createElement('button', { 
-                            onClick: () => setBuyQuantities(prev => ({ ...prev, [raffle.id]: Math.max(1, (prev[raffle.id] || 1) - 1) }))
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              setBuyQuantities(prev => ({ ...prev, [raffle.id]: Math.max(1, (prev[raffle.id] || 1) - 1) }));
+                            }
                           }, '-'),
                           React.createElement('input', { 
                             type: 'number', 
                             value: buyQuantities[raffle.id] || 1,
+                            onClick: (e) => e.stopPropagation(),
                             onChange: (e) => {
                               const val = parseInt(e.target.value) || 1;
                               setBuyQuantities(prev => ({ ...prev, [raffle.id]: Math.max(1, val) }));
                             }
                           }),
                           React.createElement('button', { 
-                            onClick: () => setBuyQuantities(prev => ({ ...prev, [raffle.id]: (prev[raffle.id] || 1) + 1 }))
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              setBuyQuantities(prev => ({ ...prev, [raffle.id]: (prev[raffle.id] || 1) + 1 }));
+                            }
                           }, '+')
                         ),
                         React.createElement('button', { 
                         className: 'raffle-btn-buy', 
-                        onClick: () => handleBuyTicket(raffle),
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          handleBuyTicket(raffle);
+                        },
                         disabled: isBuying
                       }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : `Buy ${buyQuantities[raffle.id] || 1} Ticket`)
                       )
