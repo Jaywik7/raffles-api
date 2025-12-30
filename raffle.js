@@ -487,7 +487,12 @@ function RaffleAppInner() {
 
       let items = result.items;
       
-      const nfts = items.map(asset => {
+      const nfts = items.filter(asset => {
+        // Strict NFT check: interface is NFT/pNFT OR it's a token with 0 decimals and supply 1
+        const isNftInterface = ['V1_NFT', 'ProgrammableNFT', 'Custom'].includes(asset.interface);
+        const isNftToken = asset.token_info && asset.token_info.decimals === 0 && asset.token_info.supply === 1;
+        return isNftInterface || isNftToken;
+      }).map(asset => {
         const content = asset.content || {};
         const image = content.links?.image || 
                       content.files?.[0]?.uri || 
@@ -589,12 +594,16 @@ function RaffleAppInner() {
       
       const tokens = items
         .filter(asset => {
-          const isFungible = asset.interface === 'FungibleToken' || 
-                             asset.interface === 'FungibleAsset' ||
-                             asset.token_info;
+          const isFungible = asset.interface === 'FungibleToken' || asset.interface === 'FungibleAsset';
+          const tokenInfo = asset.token_info || {};
+          
+          // Tight check: To be a "Token", it must NOT be an NFT (0 decimals + supply 1)
+          const isActuallyNft = tokenInfo.decimals === 0 && tokenInfo.supply === 1;
+          
           // Filter out frozen (non-transferable) tokens
           const isTransferable = !asset.ownership?.frozen;
-          return isFungible && isTransferable;
+          
+          return isFungible && !isActuallyNft && isTransferable;
         })
         .map(asset => {
           const content = asset.content || {};
