@@ -490,14 +490,14 @@ function RaffleAppInner() {
       const nfts = items.filter(asset => {
         const tokenInfo = asset.token_info || {};
         
-        // ULTIMATE NFT CHECK: If it has 0 decimals, it's a collectible/NFT.
-        // This is how wallets like Phantom decide what goes into the 'Collectibles' tab.
+        // SFT/NFT CHECK: If it has 0 decimals, it's a collectible (like the OPOS cube).
+        // Standard NFTs and Semi-Fungible Tokens (SFTs) both use 0 decimals.
         const hasZeroDecimals = tokenInfo.decimals === 0;
         
-        // Also include standard NFT interfaces just in case decimals isn't reported
-        const isNftInterface = ['V1_NFT', 'ProgrammableNFT'].includes(asset.interface);
+        // Also include standard NFT interfaces
+        const isNftInterface = ['V1_NFT', 'ProgrammableNFT', 'FungibleAsset'].includes(asset.interface);
         
-        return hasZeroDecimals || isNftInterface;
+        return hasZeroDecimals || (isNftInterface && tokenInfo.decimals === undefined);
       }).map(asset => {
         const content = asset.content || {};
         const image = content.links?.image || 
