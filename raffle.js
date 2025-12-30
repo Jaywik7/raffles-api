@@ -488,10 +488,16 @@ function RaffleAppInner() {
       let items = result.items;
       
       const nfts = items.filter(asset => {
-        // Strict NFT check: interface is NFT/pNFT OR it's a token with 0 decimals and supply 1
-        const isNftInterface = ['V1_NFT', 'ProgrammableNFT', 'Custom'].includes(asset.interface);
-        const isNftToken = asset.token_info && asset.token_info.decimals === 0 && asset.token_info.supply === 1;
-        return isNftInterface || isNftToken;
+        const tokenInfo = asset.token_info || {};
+        
+        // ULTIMATE NFT CHECK: If it has 0 decimals, it's a collectible/NFT.
+        // This is how wallets like Phantom decide what goes into the 'Collectibles' tab.
+        const hasZeroDecimals = tokenInfo.decimals === 0;
+        
+        // Also include standard NFT interfaces just in case decimals isn't reported
+        const isNftInterface = ['V1_NFT', 'ProgrammableNFT'].includes(asset.interface);
+        
+        return hasZeroDecimals || isNftInterface;
       }).map(asset => {
         const content = asset.content || {};
         const image = content.links?.image || 
@@ -594,16 +600,17 @@ function RaffleAppInner() {
       
       const tokens = items
         .filter(asset => {
-          const isFungible = asset.interface === 'FungibleToken' || asset.interface === 'FungibleAsset';
           const tokenInfo = asset.token_info || {};
           
-          // Tight check: To be a "Token", it must NOT be an NFT (0 decimals + supply 1)
-          const isActuallyNft = tokenInfo.decimals === 0 && tokenInfo.supply === 1;
+          // ULTIMATE TOKEN CHECK: If it has more than 0 decimals, it's a fungible token.
+          const hasDecimals = tokenInfo.decimals > 0;
           
-          // Filter out frozen (non-transferable) tokens
-          const isTransferable = !asset.ownership?.frozen;
+          // Also check Fungible interfaces for tokens that might have 0 decimals but are intended as tokens (rare)
+          // but prioritize decimals check to avoid catching NFTs.
+          const isFungibleInterface = asset.interface === 'FungibleToken' || asset.interface === 'FungibleAsset';
           
-          return isFungible && !isActuallyNft && isTransferable;
+          // To be a token in our app, it MUST have decimals > 0 to separate from the 'Collectibles' tab.
+          return hasDecimals && isFungibleInterface;
         })
         .map(asset => {
           const content = asset.content || {};
