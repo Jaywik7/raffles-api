@@ -1208,6 +1208,9 @@ function RaffleAppInner() {
                   },
                     React.createElement('div', { className: 'raffle-item-image' },
                       React.createElement('img', { src: raffle.image, alt: raffle.name }),
+                      React.createElement('div', { 
+                        className: `raffle-type-badge ${raffle.tokenPrize && !raffle.image.includes(raffle.name) ? 'dual' : (raffle.tokenPrize ? 'token' : 'nft')}` 
+                      }, raffle.tokenPrize && !raffle.image.includes(raffle.name) ? 'NFT + TOKEN' : (raffle.tokenPrize ? 'TOKEN PRIZE' : 'NFT PRIZE')),
                       raffle.tokenPrize && React.createElement('div', { className: 'raffle-prize-badge' }, 
                         `+ ${raffle.tokenPrize.amount.toLocaleString()} ${raffle.tokenPrize.symbol}`
                       ),
@@ -1405,6 +1408,7 @@ function RaffleAppInner() {
                 },
                   selectedNft ? (
                     React.createElement('div', { className: 'raffle-selected-nft' },
+                      React.createElement('div', { className: 'prize-type-header' }, 'SELECTED NFT'),
                       React.createElement('img', { src: selectedNft.image, alt: selectedNft.name }),
                       React.createElement('div', { className: 'selected-nft-info' },
                         React.createElement('span', null, selectedNft.name),
@@ -1434,6 +1438,7 @@ function RaffleAppInner() {
                 },
                   selectedToken ? (
                     React.createElement('div', { className: 'raffle-selected-nft' },
+                      React.createElement('div', { className: 'prize-type-header token' }, 'SELECTED TOKEN'),
                       React.createElement('div', { className: 'token-prize-display' },
                         selectedToken.image && React.createElement('img', { 
                           src: selectedToken.image, 

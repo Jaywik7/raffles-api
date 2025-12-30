@@ -1706,3 +1706,54 @@
   color: #FFD55F;
   font-weight: 700;
 }
+
+/* Prize Type Indicators */
+.raffle-type-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 3;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.raffle-type-badge.nft {
+  background: rgba(0, 227, 250, 0.8); /* Cyan for NFT */
+  color: #000;
+}
+
+.raffle-type-badge.token {
+  background: rgba(177, 158, 239, 0.8); /* Purple for Token */
+  color: #fff;
+}
+
+.raffle-type-badge.dual {
+  background: linear-gradient(90deg, #00E3FA, #B19EEF);
+  color: #000;
+}
+
+.prize-type-header {
+  font-size: 10px;
+  font-weight: 900;
+  color: #00E3FA;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  width: 100%;
+  text-align: center;
+}
+
+.prize-type-header.token {
+  color: #B19EEF;
+}
+
+/* Ensure sharing buttons don't overlap badges */
+.raffle-card-share {
+  top: 40px !important; /* Move down a bit to clear type badge */
+}
