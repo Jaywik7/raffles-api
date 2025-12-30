@@ -9,7 +9,7 @@ import { clusterApiUrl } from 'https://esm.sh/@solana/web3.js';
 const HELIUS_API_KEY = "ac2b3c74-327a-4090-b0f7-317731507008";
 
 export const SolanaProvider = ({ children }) => {
-    const network = WalletAdapterNetwork.Devnet;
+    const network = WalletAdapterNetwork.Mainnet;
     
     // Use Helius RPC for production, but fallback to public RPC for localhost testing
     const endpoint = useMemo(() => {
@@ -17,15 +17,15 @@ export const SolanaProvider = ({ children }) => {
         
         if (isLocal) {
             console.log("Local development detected: Using public Solana RPC");
-            return "https://api.devnet.solana.com";
+            return "https://api.mainnet-beta.solana.com";
         }
 
         // Use environment variable if available (e.g. on Vercel), otherwise fallback to hardcoded key
         const apiKey = (typeof process !== 'undefined' && process.env?.VITE_HELIUS_API_KEY) || HELIUS_API_KEY;
 
         return apiKey && apiKey !== "YOUR_HELIUS_API_KEY_HERE" 
-            ? `https://devnet.helius-rpc.com/?api-key=${apiKey}`
-            : "https://api.devnet.solana.com";
+            ? `https://mainnet.helius-rpc.com/?api-key=${apiKey}`
+            : "https://api.mainnet-beta.solana.com";
     }, []);
 
     const wallets = useMemo(

@@ -1333,7 +1333,7 @@ function RaffleAppInner() {
                       React.createElement('div', { className: 'raffle-item-stats past-winner' },
                         React.createElement('span', { className: 'winner-label' }, raffle.winner ? 'Winner' : 'Status'),
                         raffle.winner ? React.createElement('a', { 
-                          href: `https://solscan.io/account/${raffle.winner}${connection.rpcEndpoint.includes('devnet') ? '?cluster=devnet' : ''}`,
+                          href: `https://solscan.io/account/${raffle.winner}`,
                           target: '_blank',
                           rel: 'noopener noreferrer',
                           className: 'winner-link'
@@ -1379,7 +1379,7 @@ function RaffleAppInner() {
                           React.createElement('div', { className: 'raffle-item-stats past-winner' },
                             React.createElement('span', { className: 'winner-label' }, raffle.winner ? (raffle.winner === publicKey.toBase58() ? 'You Won!' : 'Winner') : 'Status'),
                             raffle.winner ? React.createElement('a', { 
-                              href: `https://solscan.io/account/${raffle.winner}${connection.rpcEndpoint.includes('devnet') ? '?cluster=devnet' : ''}`,
+                              href: `https://solscan.io/account/${raffle.winner}`,
                               target: '_blank',
                               rel: 'noopener noreferrer',
                               className: 'winner-link'
