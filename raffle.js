@@ -255,6 +255,22 @@ function RaffleAppInner() {
   const NTZ_MINT = useMemo(() => new PublicKey('HgceAr5JaC4CbBMNqQJC4BMj7TS3d6uaQ3QDGYzvieA3'), []);
   const HOLDER_ONLY_FEE = 1.0; // 1 SOL fee for holder-only mode
 
+  // Authorized wallets for creating raffles
+  const AUTHORIZED_CREATORS = useMemo(() => [
+    'BD8fhrvmgvkh1LbnXBSZcCWoZ2XGeJxUdgFxZ2X6YAdV',
+    'D2oodgQe4umpJtapsoR3kzEo2KJM3ES33qoaMCwU4bu4',
+    '8Q33xekaQFtuPLHcGw2QtiJRHBZX3CDg6dSymk6rKj7E',
+    '8ofPwgXdLgjkgWn9zLGsckYkRrvm7ehKnRQWttKjJ1UX',
+    'BJWGkhiBagxrt87Wiw4HLwNYGtB1rrJVkVC6AcVZR2U1',
+    '266SHaNB6TeRH4cJuui3UKXGVQKaQskiFCG6pn5u2SHd',
+    '8UbbCaR2eWf1hMV8Rq1TZYUup3L6EzPuzryN9EA2mLSy'
+  ], []);
+
+  const isAuthorizedCreator = useMemo(() => {
+    if (!publicKey) return false;
+    return AUTHORIZED_CREATORS.includes(publicKey.toBase58());
+  }, [publicKey, AUTHORIZED_CREATORS]);
+
   const [paymentCurrency, setPaymentCurrency] = useState('SOL'); // 'SOL' or 'NTZ'
 
   const setQuickDate = (hours) => {
@@ -1183,7 +1199,7 @@ function RaffleAppInner() {
                   className: `raffle-nav-item ${activeTab === tab ? 'active' : ''}`,
                   onClick: () => setActiveTab(tab)
                 }, tab)),
-                React.createElement('button', { 
+                isAuthorizedCreator && React.createElement('button', { 
                   className: 'raffle-btn-create-nav',
                   onClick: () => setActiveTab('Create')
                 }, 'Create Raffle')
