@@ -251,7 +251,7 @@ function RaffleAppInner() {
 
   // MALLOW PROTOCOL CONSTANTS
   const MALLOW_PROGRAM_ID = useMemo(() => new PublicKey('ComputeBudget111111111111111111111111111111'), []); 
-  const MICROS_TREASURY = useMemo(() => new PublicKey('Memo1U4bthBndSaca7jkCDXvDgncrkGSLcSTu9qh9P8'), []);
+  const MICROS_TREASURY = useMemo(() => new PublicKey('2Vvv3raBsA2SKSU4GbURS9nDVWe46zZAqUt3rj4Hb8n2'), []);
   const NTZ_MINT = useMemo(() => new PublicKey('HgceAr5JaC4CbBMNqQJC4BMj7TS3d6uaQ3QDGYzvieA3'), []);
   const HOLDER_ONLY_FEE = 1.0; // 1 SOL fee for holder-only mode
 
