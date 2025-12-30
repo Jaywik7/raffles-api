@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from 'https://esm.sh/@solana/web3.js';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createTransferCheckedInstruction } from 'https://esm.sh/@solana/spl-token';
 import { useWallet, useConnection } from 'https://esm.sh/@solana/wallet-adapter-react?deps=react@18';
 import { WalletMultiButton } from 'https://esm.sh/@solana/wallet-adapter-react-ui?deps=react@18';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
@@ -211,6 +212,7 @@ function RaffleAppInner() {
   const [activeTab, setActiveTab] = useState('Active Raffles');
   const [scrolled, setScrolled] = useState(false);
   const [balance, setBalance] = useState(0);
+  const [ntzBalance, setNtzBalance] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [walletNfts, setWalletNfts] = useState([]);
@@ -250,7 +252,10 @@ function RaffleAppInner() {
   // MALLOW PROTOCOL CONSTANTS
   const MALLOW_PROGRAM_ID = useMemo(() => new PublicKey('ComputeBudget111111111111111111111111111111'), []); 
   const MICROS_TREASURY = useMemo(() => new PublicKey('Memo1U4bthBndSaca7jkCDXvDgncrkGSLcSTu9qh9P8'), []);
+  const NTZ_MINT = useMemo(() => new PublicKey('HgceAr5JaC4CbBMNqQJC4BMj7TS3d6uaQ3QDGYzvieA3'), []);
   const HOLDER_ONLY_FEE = 1.0; // 1 SOL fee for holder-only mode
+
+  const [paymentCurrency, setPaymentCurrency] = useState('SOL'); // 'SOL' or 'NTZ'
 
   const setQuickDate = (hours) => {
     const date = new Date();
@@ -313,6 +318,8 @@ function RaffleAppInner() {
         creator: r.creator_address,
         winner: r.winner_address,
         status: r.status,
+        paymentMint: r.payment_mint,
+        paymentSymbol: r.payment_symbol || 'SOL',
         tokenPrize: r.prize_token_mint ? {
           symbol: r.prize_token_symbol,
           amount: r.prize_token_amount,
@@ -427,8 +434,15 @@ function RaffleAppInner() {
       connection.getBalance(publicKey).then(bal => {
         setBalance(bal / LAMPORTS_PER_SOL);
       });
+      // Fetch NTZ Balance
+      getAssociatedTokenAddress(NTZ_MINT, publicKey).then(ata => {
+        connection.getTokenAccountBalance(ata).then(res => {
+          setNtzBalance(res.value.uiAmount || 0);
+        }).catch(() => setNtzBalance(0));
+      });
     } else {
       setBalance(0);
+      setNtzBalance(0);
       setWalletNfts([]);
       setSelectedNft(null);
     }
@@ -738,6 +752,8 @@ function RaffleAppInner() {
           prize_token_mint: selectedToken?.mint || null,
           prize_token_amount: selectedToken ? parseFloat(tokenAmount) : null,
           prize_token_symbol: selectedToken?.symbol || null,
+          payment_mint: paymentCurrency === 'NTZ' ? NTZ_MINT.toBase58() : null,
+          payment_symbol: paymentCurrency,
           status: 'active'
         }])
         .select();
@@ -805,25 +821,49 @@ function RaffleAppInner() {
       return;
     }
 
-    const ticketPriceLamports = Math.round(raffle.price * LAMPORTS_PER_SOL);
+    const ticketPriceLamports = Math.round(raffle.price * (raffle.paymentSymbol === 'NTZ' ? 1000000 : LAMPORTS_PER_SOL));
     const totalCostLamports = ticketPriceLamports * quantity;
-
-    // Mallow Protocol logic: 
-    // 4.75% of total cost goes to Micros Treasury as commission
-    // 95.25% stays in the Raffle Escrow (to be paid to the raffle creator at the end)
-    const commissionLamports = Math.round(totalCostLamports * 0.0475);
 
     notify(`Please approve the purchase of ${quantity} ticket(s) in your wallet...`, 'info', true);
     setIsBuying(true);
     try {
-      // Placeholder for Mallow Protocol 'buyTicket' instruction
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: MICROS_TREASURY,
-          lamports: totalCostLamports,
-        })
-      );
+      const transaction = new Transaction();
+
+      if (raffle.paymentSymbol === 'NTZ') {
+        // --- SPL TOKEN TRANSFER ($NTZ) ---
+        const userAta = await getAssociatedTokenAddress(NTZ_MINT, publicKey);
+        const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY);
+
+        // Check if user has the token account
+        try {
+          const accountInfo = await connection.getAccountInfo(userAta);
+          if (!accountInfo) {
+            throw new Error(`You don't have any $NTZ tokens in your wallet.`);
+          }
+        } catch (e) {
+          throw new Error(`You don't have any $NTZ tokens in your wallet.`);
+        }
+
+        transaction.add(
+          createTransferCheckedInstruction(
+            userAta,
+            NTZ_MINT,
+            treasuryAta,
+            publicKey,
+            totalCostLamports,
+            6 // NTZ has 6 decimals
+          )
+        );
+      } else {
+        // --- NATIVE SOL TRANSFER ---
+        transaction.add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: MICROS_TREASURY,
+            lamports: totalCostLamports,
+          })
+        );
+      }
 
       const signature = await sendTransaction(transaction, connection);
       notify('Confirming purchase on-chain... ⛓️', 'info', true);
@@ -999,7 +1039,7 @@ function RaffleAppInner() {
                 React.createElement('div', { className: 'detail-stats-grid' },
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Ticket Price'),
-                    React.createElement('span', null, selectedRaffleDetails.price, ' SOL')
+                    React.createElement('span', null, selectedRaffleDetails.price, ' ', selectedRaffleDetails.paymentSymbol || 'SOL')
                   ),
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Tickets Sold'),
@@ -1194,7 +1234,7 @@ function RaffleAppInner() {
                     React.createElement('div', { className: 'raffle-item-info' },
                       React.createElement('h3', null, raffle.name),
                       React.createElement('div', { className: 'raffle-item-stats' },
-                        React.createElement('span', null, 'Price: ', raffle.price, ' SOL'),
+                        React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                         React.createElement('span', null, 'Sold: ', raffle.sold, '/', raffle.supply)
                       ),
                       raffle.limitPerWallet && React.createElement('div', { className: 'raffle-item-limit-info' },
@@ -1480,8 +1520,13 @@ function RaffleAppInner() {
                         value: ticketPrice,
                         onChange: (e) => setTicketPrice(e.target.value)
                       }),
-                      React.createElement('select', { className: 'raffle-currency-select' },
-                        React.createElement('option', null, 'SOL')
+                      React.createElement('select', { 
+                        className: 'raffle-currency-select',
+                        value: paymentCurrency,
+                        onChange: (e) => setPaymentCurrency(e.target.value)
+                      },
+                        React.createElement('option', { value: 'SOL' }, 'SOL'),
+                        React.createElement('option', { value: 'NTZ' }, 'NTZ')
                       )
                     )
                   )
@@ -1541,7 +1586,11 @@ function RaffleAppInner() {
                   )
                 ),
                 React.createElement('div', { className: 'raffle-action-row' },
-                  React.createElement('div', { className: 'raffle-balance-info' }, publicKey ? `Your balance: ${balance.toFixed(2)} SOL` : 'Connect wallet to see balance'),
+                  React.createElement('div', { className: 'raffle-balance-info' }, 
+                    publicKey 
+                      ? (paymentCurrency === 'SOL' ? `Your balance: ${balance.toFixed(2)} SOL` : `Your balance: ${ntzBalance.toLocaleString()} NTZ`)
+                      : 'Connect wallet to see balance'
+                  ),
                   React.createElement('div', { className: 'raffle-submit-group' },
                     React.createElement('label', { className: 'raffle-checkbox-label' },
                       React.createElement('input', { 
