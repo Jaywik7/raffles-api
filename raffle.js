@@ -856,6 +856,11 @@ function RaffleAppInner() {
     const ticketPriceLamports = Math.round(raffle.price * (raffle.paymentSymbol === 'NTZ' ? 1000000 : LAMPORTS_PER_SOL));
     const totalCostLamports = ticketPriceLamports * quantity;
 
+    // --- CALCULATE SPLIT (4.75% to Micros, 95.25% to Creator) ---
+    const commissionLamports = Math.floor(totalCostLamports * 0.0475);
+    const creatorLamports = totalCostLamports - commissionLamports;
+    const creatorPubkey = new PublicKey(raffle.creator);
+
     notify(`Please approve the purchase of ${quantity} ticket(s) in your wallet...`, 'info', true);
     setIsBuying(true);
     try {
@@ -865,6 +870,7 @@ function RaffleAppInner() {
         // --- SPL TOKEN TRANSFER ($NTZ) ---
         const userAta = await getAssociatedTokenAddress(NTZ_MINT, publicKey);
         const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY);
+        const creatorAta = await getAssociatedTokenAddress(NTZ_MINT, creatorPubkey);
 
         // Check if user has the token account
         try {
@@ -876,23 +882,40 @@ function RaffleAppInner() {
           throw new Error(`You don't have any $NTZ tokens in your wallet.`);
         }
 
+        // 1. Send Commission to Micros Treasury
+        if (commissionLamports > 0) {
+          transaction.add(
+            createTransferCheckedInstruction(
+              userAta, NTZ_MINT, treasuryAta, publicKey, commissionLamports, 6
+            )
+          );
+        }
+
+        // 2. Send Remaining to Raffle Creator
         transaction.add(
           createTransferCheckedInstruction(
-            userAta,
-            NTZ_MINT,
-            treasuryAta,
-            publicKey,
-            totalCostLamports,
-            6 // NTZ has 6 decimals
+            userAta, NTZ_MINT, creatorAta, publicKey, creatorLamports, 6
           )
         );
       } else {
         // --- NATIVE SOL TRANSFER ---
+        // 1. Send Commission to Micros Treasury
+        if (commissionLamports > 0) {
+          transaction.add(
+            SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: MICROS_TREASURY,
+              lamports: commissionLamports,
+            })
+          );
+        }
+
+        // 2. Send Remaining to Raffle Creator
         transaction.add(
           SystemProgram.transfer({
             fromPubkey: publicKey,
-            toPubkey: MICROS_TREASURY,
-            lamports: totalCostLamports,
+            toPubkey: creatorPubkey,
+            lamports: creatorLamports,
           })
         );
       }
