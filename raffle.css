@@ -1779,7 +1779,11 @@
 
   .raffle-fixed-header {
     top: 12px !important;
-    right: 85px !important; /* Move it closer to the menu button */
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: auto !important;
+    z-index: 60 !important; /* Ensure it stays above other header elements */
   }
 
   .raffle-header-actions button[class*="wallet-adapter-button"] {
