@@ -802,7 +802,7 @@ function RaffleAppInner() {
       // --- MALLOW PROTOCOL INTEGRATION LOGIC ---
       // 1. Calculate Fees (Holder fee + Base fee)
       const isHolderOnly = collections.some(c => c.trim() !== '');
-      const baseCreationFee = 0.05; // Example 0.05 SOL base
+      const baseCreationFee = 0.001; // Creation fee reduced to 0.001 SOL
       const totalCreationFee = isHolderOnly ? (baseCreationFee + HOLDER_ONLY_FEE) : baseCreationFee;
 
       console.log(`Creating raffle on Mallow Protocol. Fee: ${totalCreationFee} SOL`);
@@ -1795,7 +1795,7 @@ function RaffleAppInner() {
                   React.createElement('ol', null,
                     [
                       'When you create a raffle, the NFT prize you have chosen will be transferred from your wallet into an escrow wallet.',
-                      'A fixed creation fee of 0.05 SOL is required to list a raffle on the platform.',
+                      'A fixed creation fee of 0.001 SOL is required to list a raffle on the platform.',
                       'If you enable "Holder Only Mode", an additional 1.0 SOL fee is applied for cross-collection verification.',
                       'You can specify the amount of time a raffle runs at the creation. Raffles require a minimum 24 hour run time.',
                       'Raffle will take a 4.75% commission fee from the ticket sales.'
