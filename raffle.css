@@ -1757,3 +1757,62 @@
 .raffle-card-share {
   top: 40px !important; /* Move down a bit to clear type badge */
 }
+
+/* Mobile Header Optimization (iPhone/Smaller Screens) */
+@media (max-width: 640px) {
+  .staggered-menu-header {
+    padding: 12px 16px !important;
+  }
+  
+  .sm-logo-img {
+    height: 28px !important;
+  }
+
+  .sm-toggle {
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .raffle-fixed-header {
+    top: 12px !important;
+    right: 85px !important; /* Move it closer to the menu button */
+  }
+
+  .raffle-header-actions button[class*="wallet-adapter-button"] {
+    min-width: 100px !important;
+    width: 100px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    line-height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    border-radius: 50px !important;
+  }
+
+  /* Adjust main container padding for smaller header */
+  .raffle-site {
+    padding-top: 60px;
+  }
+
+  .raffle-container {
+    padding: 20px 16px;
+  }
+
+  /* Make navigation tabs slightly smaller too */
+  .raffle-nav {
+    gap: 12px;
+  }
+
+  .raffle-nav-item {
+    font-size: 14px;
+  }
+
+  .raffle-btn-create-nav {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}

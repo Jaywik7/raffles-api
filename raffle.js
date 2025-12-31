@@ -80,8 +80,9 @@ function GalaxyBackground({ density = 0.00006 }) {
   return React.createElement('canvas', { ref: canvasRef, className: 'raffle-galaxy', 'aria-hidden': 'true' });
 }
 
-function CountdownTimer({ endsAt }) {
+function CountdownTimer({ endsAt, onEnd }) {
   const [timeLeft, setTimeLeft] = useState('');
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -92,6 +93,12 @@ function CountdownTimer({ endsAt }) {
       if (diff <= 0) {
         setTimeLeft('Ended');
         clearInterval(timer);
+        
+        // Trigger auto-refresh once when it hits zero
+        if (onEnd && !hasTriggeredRef.current) {
+          hasTriggeredRef.current = true;
+          onEnd();
+        }
         return;
       }
 
@@ -1102,7 +1109,15 @@ function RaffleAppInner() {
                   ),
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Time Left'),
-                    React.createElement(CountdownTimer, { endsAt: selectedRaffleDetails.endsAt })
+                    React.createElement(CountdownTimer, { 
+                      endsAt: selectedRaffleDetails.endsAt,
+                      onEnd: () => {
+                        setTimeout(() => {
+                          setSelectedRaffleDetails(null);
+                          fetchRaffles();
+                        }, 2000);
+                      }
+                    })
                   ),
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Limit Per Wallet'),
@@ -1301,7 +1316,10 @@ function RaffleAppInner() {
                       raffle.endsAt && React.createElement('div', { className: 'raffle-item-times' },
                         React.createElement('div', { className: 'raffle-time-row' },
                           React.createElement('span', { className: 'time-label' }, 'Time Left: '),
-                          React.createElement(CountdownTimer, { endsAt: raffle.endsAt })
+                          React.createElement(CountdownTimer, { 
+                            endsAt: raffle.endsAt,
+                            onEnd: () => setTimeout(fetchRaffles, 2000)
+                          })
                         )
                       ),
                       React.createElement('div', { className: 'raffle-buy-row' },
@@ -1435,7 +1453,10 @@ function RaffleAppInner() {
                           React.createElement('div', { className: 'raffle-item-times' },
                             React.createElement('div', { className: 'raffle-time-row' },
                               React.createElement('span', { className: 'time-label' }, 'Time Left: '),
-                              React.createElement(CountdownTimer, { endsAt: raffle.endsAt })
+                              React.createElement(CountdownTimer, { 
+                            endsAt: raffle.endsAt,
+                            onEnd: () => setTimeout(fetchRaffles, 2000)
+                          })
                             )
                           ),
                           React.createElement('button', { className: 'raffle-btn-buy', disabled: true }, 'You are Creator')
