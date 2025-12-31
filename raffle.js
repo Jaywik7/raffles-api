@@ -466,11 +466,14 @@ function RaffleAppInner() {
         setBalance(bal / LAMPORTS_PER_SOL);
       });
       // Fetch NTZ Balance
-      getAssociatedTokenAddress(NTZ_MINT, publicKey).then(ata => {
-        connection.getTokenAccountBalance(ata).then(res => {
-          setNtzBalance(res.value.uiAmount || 0);
-        }).catch(() => setNtzBalance(0));
-      });
+      connection.getParsedAccountInfo(NTZ_MINT).then(mintInfo => {
+        const programId = mintInfo.value?.owner || TOKEN_PROGRAM_ID;
+        getAssociatedTokenAddress(NTZ_MINT, publicKey, false, programId).then(ata => {
+          connection.getTokenAccountBalance(ata).then(res => {
+            setNtzBalance(res.value.uiAmount || 0);
+          }).catch(() => setNtzBalance(0));
+        });
+      }).catch(() => setNtzBalance(0));
     } else {
       setBalance(0);
       setNtzBalance(0);
@@ -919,14 +922,16 @@ function RaffleAppInner() {
     setIsBuying(true);
 
     try {
-      // 1. Fetch decimals and prepare amounts
-      let decimals = 9; // Default to 9
+      // 1. Fetch decimals and program ID
+      let decimals = 9;
+      let programId = TOKEN_PROGRAM_ID;
       if (isNtzPayment) {
         try {
           const mintInfo = await connection.getParsedAccountInfo(NTZ_MINT);
           decimals = mintInfo.value?.data?.parsed?.info?.decimals || 9;
+          programId = mintInfo.value?.owner || TOKEN_PROGRAM_ID;
         } catch (e) {
-          console.error("Failed to fetch NTZ decimals:", e);
+          console.error("Failed to fetch NTZ mint info:", e);
         }
       }
 
@@ -945,9 +950,9 @@ function RaffleAppInner() {
 
       if (isNtzPayment) {
         // --- SPL TOKEN TRANSFER ($NTZ) ---
-        const userAta = await getAssociatedTokenAddress(NTZ_MINT, publicKey);
-        const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY);
-        const creatorAta = await getAssociatedTokenAddress(NTZ_MINT, creatorPubkey);
+        const userAta = await getAssociatedTokenAddress(NTZ_MINT, publicKey, false, programId);
+        const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY, false, programId);
+        const creatorAta = await getAssociatedTokenAddress(NTZ_MINT, creatorPubkey, false, programId);
 
         // Check user account
         const userAtaInfo = await connection.getAccountInfo(userAta);
@@ -960,7 +965,7 @@ function RaffleAppInner() {
         if (!treasuryAtaInfo) {
           transaction.add(
             createAssociatedTokenAccountInstruction(
-              publicKey, treasuryAta, MICROS_TREASURY, NTZ_MINT
+              publicKey, treasuryAta, MICROS_TREASURY, NTZ_MINT, programId
             )
           );
         }
@@ -970,7 +975,7 @@ function RaffleAppInner() {
         if (!creatorAtaInfo) {
           transaction.add(
             createAssociatedTokenAccountInstruction(
-              publicKey, creatorAta, creatorPubkey, NTZ_MINT
+              publicKey, creatorAta, creatorPubkey, NTZ_MINT, programId
             )
           );
         }
@@ -979,7 +984,7 @@ function RaffleAppInner() {
         if (totalTreasuryAmount > 0) {
           transaction.add(
             createTransferCheckedInstruction(
-              userAta, NTZ_MINT, treasuryAta, publicKey, totalTreasuryAmount, decimals
+              userAta, NTZ_MINT, treasuryAta, publicKey, totalTreasuryAmount, decimals, [], programId
             )
           );
         }
@@ -988,13 +993,13 @@ function RaffleAppInner() {
         if (totalCreatorAmount > 0) {
           transaction.add(
             createTransferCheckedInstruction(
-              userAta, NTZ_MINT, creatorAta, publicKey, totalCreatorAmount, decimals
+              userAta, NTZ_MINT, creatorAta, publicKey, totalCreatorAmount, decimals, [], programId
             )
           );
         }
       } else {
         // --- NATIVE SOL TRANSFER ---
-        // 1. Send Commission to Micros Treasury (95.25%)
+        // 1. Send Commission to Micros Treasury (4.75%)
         if (totalTreasuryAmount > 0) {
           transaction.add(
             SystemProgram.transfer({
@@ -1005,7 +1010,7 @@ function RaffleAppInner() {
           );
         }
 
-        // 2. Send Remaining to Raffle Creator (4.75%)
+        // 2. Send Remaining to Raffle Creator (95.25%)
         if (totalCreatorAmount > 0) {
           transaction.add(
             SystemProgram.transfer({
