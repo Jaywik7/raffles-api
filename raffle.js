@@ -911,13 +911,20 @@ function RaffleAppInner() {
       return;
     }
 
-    const isNtzPayment = raffle.paymentSymbol === 'NTZ' || (raffle.paymentMint === NTZ_MINT.toBase58());
-    const ticketPriceLamports = Math.round(raffle.price * (isNtzPayment ? 1000000 : LAMPORTS_PER_SOL));
-    const totalCostLamports = ticketPriceLamports * quantity;
+    // Detection for NTZ payment (robust check)
+    const isNtzPayment = (raffle.paymentSymbol && raffle.paymentSymbol.toString().toUpperCase() === 'NTZ') || 
+                         (raffle.paymentMint === NTZ_MINT.toBase58());
+    
+    const ticketPriceUnits = isNtzPayment ? 1000000 : LAMPORTS_PER_SOL;
+    const pricePerTicketInUnits = Math.round(raffle.price * ticketPriceUnits);
 
-    // --- CALCULATE SPLIT (4.75% to Micros, 95.25% to Creator) ---
-    const commissionLamports = Math.floor(totalCostLamports * 0.0475);
-    const creatorLamports = totalCostLamports - commissionLamports;
+    // --- CALCULATE SPLIT PER TICKET (4.75% to Micros Treasury, 95.25% to Creator) ---
+    // As requested: 4.75% now goes to Treasury, 95.25% to Creator
+    const treasurySharePerTicket = Math.floor(pricePerTicketInUnits * 0.0475);
+    const creatorSharePerTicket = pricePerTicketInUnits - treasurySharePerTicket;
+
+    const totalTreasuryAmount = treasurySharePerTicket * quantity;
+    const totalCreatorAmount = creatorSharePerTicket * quantity;
     const creatorPubkey = new PublicKey(raffle.creator);
 
     notify(`Please approve the purchase of ${quantity} ticket(s) in your wallet...`, 'info', true);
@@ -941,42 +948,46 @@ function RaffleAppInner() {
           throw new Error(`You don't have any $NTZ tokens in your wallet.`);
         }
 
-        // 1. Send Commission to Micros Treasury
-        if (commissionLamports > 0) {
+        // 1. Send Commission to Micros Treasury (95.25%)
+        if (totalTreasuryAmount > 0) {
           transaction.add(
             createTransferCheckedInstruction(
-              userAta, NTZ_MINT, treasuryAta, publicKey, commissionLamports, 6
+              userAta, NTZ_MINT, treasuryAta, publicKey, totalTreasuryAmount, 6
             )
           );
         }
 
-        // 2. Send Remaining to Raffle Creator
-        transaction.add(
-          createTransferCheckedInstruction(
-            userAta, NTZ_MINT, creatorAta, publicKey, creatorLamports, 6
-          )
-        );
+        // 2. Send Remaining to Raffle Creator (4.75%)
+        if (totalCreatorAmount > 0) {
+          transaction.add(
+            createTransferCheckedInstruction(
+              userAta, NTZ_MINT, creatorAta, publicKey, totalCreatorAmount, 6
+            )
+          );
+        }
       } else {
         // --- NATIVE SOL TRANSFER ---
-        // 1. Send Commission to Micros Treasury
-        if (commissionLamports > 0) {
+        // 1. Send Commission to Micros Treasury (95.25%)
+        if (totalTreasuryAmount > 0) {
           transaction.add(
             SystemProgram.transfer({
               fromPubkey: publicKey,
               toPubkey: MICROS_TREASURY,
-              lamports: commissionLamports,
+              lamports: totalTreasuryAmount,
             })
           );
         }
 
-        // 2. Send Remaining to Raffle Creator
-        transaction.add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: creatorPubkey,
-            lamports: creatorLamports,
-          })
-        );
+        // 2. Send Remaining to Raffle Creator (4.75%)
+        if (totalCreatorAmount > 0) {
+          transaction.add(
+            SystemProgram.transfer({
+              fromPubkey: publicKey,
+              toPubkey: creatorPubkey,
+              lamports: totalCreatorAmount,
+            })
+          );
+        }
       }
 
       const signature = await sendTransaction(transaction, connection);
@@ -1801,7 +1812,7 @@ function RaffleAppInner() {
                       'A fixed creation fee of 0.001 SOL is required to list a raffle on the platform.',
                       'If you enable "Holder Only Mode", an additional 1.0 SOL fee is applied for cross-collection verification.',
                       'You can specify the amount of time a raffle runs at the creation. Raffles require a minimum 24 hour run time.',
-                      'Raffle will take a 4.75% commission fee from the ticket sales.'
+                      'Raffle will take a 4.75% commission fee from the ticket sales, with 95.25% going to the creator.'
                     ].map((term, i) => React.createElement('li', { key: i }, term))
                   )
                 )
