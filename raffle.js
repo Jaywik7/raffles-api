@@ -248,6 +248,7 @@ function RaffleAppInner() {
   const [ticketLimit, setTicketLimit] = useState('1');
   const [verifiedFilter, setVerifiedFilter] = useState(false);
   const [endDate, setEndDate] = useState('');
+  const [floorPrice, setFloorPrice] = useState('');
   const [collections, setCollections] = useState(['']);
   const [buyQuantities, setBuyQuantities] = useState({});
   const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -351,6 +352,7 @@ function RaffleAppInner() {
         status: r.status,
         paymentMint: r.payment_mint,
         paymentSymbol: r.payment_symbol || 'SOL',
+        floorPrice: r.floor_price,
         tokenPrize: r.prize_token_mint ? {
           symbol: r.prize_token_symbol,
           amount: r.prize_token_amount,
@@ -845,6 +847,7 @@ function RaffleAppInner() {
           prize_token_symbol: selectedToken?.symbol || null,
           payment_mint: paymentCurrency === 'NTZ' ? NTZ_MINT.toBase58() : null,
           payment_symbol: paymentCurrency,
+          floor_price: parseFloat(floorPrice) || null,
           status: 'active'
         }])
         .select();
@@ -866,6 +869,7 @@ function RaffleAppInner() {
         creator: dbRaffle.creator_address,
         paymentSymbol: dbRaffle.payment_symbol || 'SOL', // Ensure this is explicitly set
         paymentMint: dbRaffle.payment_mint,
+        floorPrice: dbRaffle.floor_price,
         isTokenOnly: !selectedNft && !!selectedToken,
         tokenPrize: dbRaffle.prize_token_mint ? {
           symbol: dbRaffle.prize_token_symbol,
@@ -1243,6 +1247,10 @@ function RaffleAppInner() {
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Limit Per Wallet'),
                     React.createElement('span', null, selectedRaffleDetails.limitPerWallet || 'No limit')
+                  ),
+                  selectedRaffleDetails.floorPrice && React.createElement('div', { className: 'detail-stat-item' },
+                    React.createElement('label', null, 'Floor Price'),
+                    React.createElement('span', { style: { color: '#FFD55F' } }, selectedRaffleDetails.floorPrice, ' SOL')
                   )
                 ),
                 React.createElement('div', { className: 'detail-description' },
@@ -1459,7 +1467,8 @@ function RaffleAppInner() {
                       React.createElement('h3', null, raffle.name),
                       React.createElement('div', { className: 'raffle-item-stats' },
                         React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
-                        React.createElement('span', null, 'Sold: ', raffle.sold, '/', raffle.supply)
+                        React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
+                        raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFD55F', fontWeight: '700' } }, `Floor Price: ${raffle.floorPrice} SOL`)
                       ),
                       raffle.limitPerWallet && React.createElement('div', { className: 'raffle-item-limit-info' },
                         `Limit: ${raffle.limitPerWallet} per wallet`
@@ -1599,7 +1608,8 @@ function RaffleAppInner() {
                         React.createElement(React.Fragment, null,
                           React.createElement('div', { className: 'raffle-item-stats' },
                             React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
-                            React.createElement('span', null, 'Sold: ', raffle.sold, '/', raffle.supply)
+                            React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
+                            raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFD55F', fontWeight: '700' } }, `Floor Price: ${raffle.floorPrice} SOL`)
                           ),
                           React.createElement('div', { className: 'raffle-item-times' },
                             React.createElement('div', { className: 'raffle-time-row' },
@@ -1759,6 +1769,22 @@ function RaffleAppInner() {
                         React.createElement('option', { value: 'SOL' }, 'SOL'),
                         React.createElement('option', { value: 'NTZ' }, 'NTZ')
                       )
+                    )
+                  ),
+                  React.createElement('div', { className: 'raffle-field' },
+                    React.createElement('div', { className: 'raffle-field-header' },
+                      React.createElement('label', null, 'Floor Price (Optional)')
+                    ),
+                    React.createElement('div', { className: 'raffle-price-input' },
+                      React.createElement('input', { 
+                        type: 'number', 
+                        step: '0.01',
+                        min: '0',
+                        placeholder: '0.00',
+                        value: floorPrice,
+                        onChange: (e) => setFloorPrice(e.target.value)
+                      }),
+                      React.createElement('div', { className: 'raffle-currency-select', style: { display: 'flex', alignItems: 'center', padding: '0 12px' } }, 'SOL')
                     )
                   )
                 ),
