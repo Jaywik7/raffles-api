@@ -1898,3 +1898,19 @@
   background: rgba(255, 255, 255, 0.2);
   transform: translateX(-2px);
 }
+
+/* NFT Modal Mobile Grid Optimization */
+@media (max-width: 640px) {
+  .nft-list-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .nft-item-select {
+    padding: 10px !important;
+  }
+
+  .collection-group-name {
+    font-size: 11px !important;
+  }
+}
