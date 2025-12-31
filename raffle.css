@@ -597,13 +597,6 @@
   font-weight: 700;
 }
 
-.raffle-rent-indicator {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #B19EEF;
-  font-weight: 700;
-}
-
 .raffle-quick-dates {
   display: flex;
   gap: 8px;

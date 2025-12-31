@@ -304,11 +304,6 @@ function RaffleAppInner() {
     setEndDate(`${year}-${month}-${day}T${hour}:${minute}`);
   };
 
-  const rentAmount = useMemo(() => {
-    // Basic calculation for visual feedback: ~0.00025 SOL per ticket
-    return (ticketSupply * 0.0002533).toFixed(3);
-  }, [ticketSupply]);
-
   // Persistent data from Supabase
   const [activeRaffles, setActiveRaffles] = useState([]);
   const [pastRaffles, setPastRaffles] = useState([]);
@@ -1692,8 +1687,7 @@ function RaffleAppInner() {
                       className: `raffle-input-dark ${ticketSupply !== '' && parseInt(ticketSupply) < 3 ? 'input-error' : ''}`,
                       value: ticketSupply,
                       onChange: (e) => setTicketSupply(e.target.value)
-                    }),
-                    React.createElement('div', { className: 'raffle-rent-indicator' }, `Rent: ${rentAmount} SOL`)
+                    })
                   ),
                   React.createElement('div', { className: 'raffle-field' },
                     React.createElement('div', { className: 'raffle-field-header' },
@@ -1801,8 +1795,9 @@ function RaffleAppInner() {
                   React.createElement('ol', null,
                     [
                       'When you create a raffle, the NFT prize you have chosen will be transferred from your wallet into an escrow wallet.',
-                      'You will be charged an up-front rent fee, in SOL, which will be taken in proportion to the number of tickets you choose to raffle, with a maximum rent fee of 2.2 SOL. The rent fee will be automatically refunded after the raffle concludes.',
-                      'You can specify the amount of time a raffle runs at the creation of the raffle. Raffles require a minimum 24 hour run time.',
+                      'A fixed creation fee of 0.05 SOL is required to list a raffle on the platform.',
+                      'If you enable "Holder Only Mode", an additional 1.0 SOL fee is applied for cross-collection verification.',
+                      'You can specify the amount of time a raffle runs at the creation. Raffles require a minimum 24 hour run time.',
                       'Raffle will take a 4.75% commission fee from the ticket sales.'
                     ].map((term, i) => React.createElement('li', { key: i }, term))
                   )
