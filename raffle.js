@@ -155,7 +155,17 @@ function WinnerModal({ raffle, onClose }) {
           React.createElement('img', { src: raffle.image, alt: raffle.name }),
           React.createElement('h3', null, raffle.name)
         ),
-        React.createElement('button', { className: 'raffle-btn-buy large', onClick: onClose }, 'Claim Your Prize')
+        React.createElement('p', { className: 'winner-instructions', style: { fontSize: '14px', margin: '15px 0', lineHeight: '1.5', opacity: '0.9', color: '#fff' } }, 
+          'To claim your prize, you must join the Micros discord and open a 🎟️ support ticket.'
+        ),
+        React.createElement('a', { 
+          href: 'https://discord.gg/qZHKN8ws9H', 
+          target: '_blank', 
+          rel: 'noopener noreferrer',
+          className: 'raffle-btn-buy large',
+          style: { textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+          onClick: onClose
+        }, 'Claim Your Prize')
       )
     )
   );
