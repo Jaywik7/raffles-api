@@ -1833,6 +1833,24 @@
     padding: 10px 20px;
     justify-content: center;
   }
+
+  /* Center Active Raffles Title and Sort dropdown below it */
+  .section-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .section-title {
+    margin-bottom: 0 !important;
+    text-align: center !important;
+  }
+
+  .raffle-sort-wrapper {
+    justify-content: center !important;
+    width: 100% !important;
+  }
 }
 
 /* NFT Collection Grouping Styles */
