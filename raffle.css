@@ -1914,3 +1914,16 @@
     font-size: 11px !important;
   }
 }
+
+/* Modal Text Contrast Fix */
+.modal-loading, 
+.modal-empty {
+  color: #fff !important;
+  opacity: 1 !important;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.modal-body {
+  color: #fff !important;
+}
