@@ -1271,7 +1271,10 @@ function RaffleAppInner() {
     ),
     // Custom Notification Toast
     notification && React.createElement('div', { className: `raffle-notification ${notification.type}` },
-      React.createElement('span', { className: 'notification-icon' }, notification.type === 'success' ? '✅' : '❌'),
+      React.createElement('span', { className: 'notification-icon' }, 
+        notification.type === 'success' ? '✅' : 
+        (notification.type === 'info' ? React.createElement('img', { src: './assets/clock.gif', style: { width: '24px', height: '24px', display: 'block' } }) : '❌')
+      ),
       React.createElement('span', { className: 'notification-message' }, notification.message),
       React.createElement('button', { className: 'notification-close', onClick: () => setNotification(null) }, '×')
     ),

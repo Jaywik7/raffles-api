@@ -1275,6 +1275,10 @@
   border-left: 4px solid #5CFCA9;
 }
 
+.raffle-notification.info {
+  border-left: 4px solid #00E3FA;
+}
+
 .raffle-notification.error {
   border-left: 4px solid #ff4d4d;
 }
