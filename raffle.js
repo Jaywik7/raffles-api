@@ -861,6 +861,8 @@ function RaffleAppInner() {
         createdAt: dbRaffle.created_at,
         endsAt: dbRaffle.ends_at,
         creator: dbRaffle.creator_address,
+        paymentSymbol: dbRaffle.payment_symbol || 'SOL', // Ensure this is explicitly set
+        paymentMint: dbRaffle.payment_mint,
         isTokenOnly: !selectedNft && !!selectedToken,
         tokenPrize: dbRaffle.prize_token_mint ? {
           symbol: dbRaffle.prize_token_symbol,
@@ -909,7 +911,8 @@ function RaffleAppInner() {
       return;
     }
 
-    const ticketPriceLamports = Math.round(raffle.price * (raffle.paymentSymbol === 'NTZ' ? 1000000 : LAMPORTS_PER_SOL));
+    const isNtzPayment = raffle.paymentSymbol === 'NTZ' || (raffle.paymentMint === NTZ_MINT.toBase58());
+    const ticketPriceLamports = Math.round(raffle.price * (isNtzPayment ? 1000000 : LAMPORTS_PER_SOL));
     const totalCostLamports = ticketPriceLamports * quantity;
 
     // --- CALCULATE SPLIT (4.75% to Micros, 95.25% to Creator) ---
@@ -922,7 +925,7 @@ function RaffleAppInner() {
     try {
       const transaction = new Transaction();
 
-      if (raffle.paymentSymbol === 'NTZ') {
+      if (isNtzPayment) {
         // --- SPL TOKEN TRANSFER ($NTZ) ---
         const userAta = await getAssociatedTokenAddress(NTZ_MINT, publicKey);
         const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY);
@@ -1549,7 +1552,7 @@ function RaffleAppInner() {
                       ) : (
                         React.createElement(React.Fragment, null,
                           React.createElement('div', { className: 'raffle-item-stats' },
-                            React.createElement('span', null, 'Price: ', raffle.price, ' SOL'),
+                            React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                             React.createElement('span', null, 'Sold: ', raffle.sold, '/', raffle.supply)
                           ),
                           React.createElement('div', { className: 'raffle-item-times' },
