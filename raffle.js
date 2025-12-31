@@ -507,7 +507,7 @@ function RaffleAppInner() {
           params: {
             ownerAddress: publicKey.toBase58(),
             page: 1,
-            limit: 100,
+            limit: 1000,
             displayOptions: { showCollectionMetadata: true },
           },
         }),
@@ -524,19 +524,31 @@ function RaffleAppInner() {
       let items = result.items;
       
       const nfts = items.filter(asset => {
+        // Exclude burnt or deleted assets
+        if (asset.burnt || asset.deleted) return false;
+
         const tokenInfo = asset.token_info || {};
+        const interface_type = asset.interface;
         
-        // SFT/NFT CHECK: If it has 0 decimals, it's a collectible (like the OPOS cube).
-        // Standard NFTs and Semi-Fungible Tokens (SFTs) both use 0 decimals.
-        const hasZeroDecimals = tokenInfo.decimals === 0;
+        // 1. Decimals check (MOST RELIABLE)
+        // If decimals are 0, it's an NFT or SFT (Collectible)
+        if (tokenInfo.decimals === 0) return true;
         
-        // Also include standard NFT interfaces
-        const isNftInterface = ['V1_NFT', 'ProgrammableNFT', 'FungibleAsset'].includes(asset.interface);
+        // 2. Interface check
+        // These are almost always NFTs
+        const nftInterfaces = ['V1_NFT', 'V2_NFT', 'COMPRESSED_NFT', 'ProgrammableNFT', 'Custom', 'LegacyNFT'];
+        if (nftInterfaces.includes(interface_type)) return true;
         
-        return hasZeroDecimals || (isNftInterface && tokenInfo.decimals === undefined);
+        // 3. Special cases for FungibleAsset (SFTs)
+        // If it's a FungibleAsset and decimals are undefined/null, it's likely an NFT
+        if (interface_type === 'FungibleAsset' && (tokenInfo.decimals === undefined || tokenInfo.decimals === null)) return true;
+        
+        return false;
       }).map(asset => {
         const content = asset.content || {};
+        const metadata = content.metadata || {};
         const image = content.links?.image || 
+                      metadata.image ||
                       content.files?.[0]?.uri || 
                       content.files?.[0]?.url ||
                       './assets/micros.png';
@@ -546,14 +558,17 @@ function RaffleAppInner() {
 
         // EXTREMELY ROBUST Collection Name Extraction
         const groupInfo = asset.grouping?.find(g => g.group_key === 'collection');
-        const collectionName = asset.content?.metadata?.collection?.name || 
-                               asset.content?.metadata?.name?.split('#')[0]?.trim() || // Fallback: extract from item name
-                               groupInfo?.group_value?.slice(0, 8) + '...' ||
-                               'Uncategorized';
+        let collectionName = 'Uncategorized';
+        
+        if (metadata.collection) {
+          collectionName = typeof metadata.collection === 'string' ? metadata.collection : (metadata.collection.name || 'Uncategorized');
+        } else if (groupInfo) {
+          collectionName = metadata.name?.split('#')[0]?.trim() || groupInfo.group_value.slice(0, 8) + '...';
+        }
 
         return {
           mint: asset.id,
-          name: content.metadata?.name || asset.id.slice(0, 8),
+          name: metadata.name || asset.id.slice(0, 8),
           image: image,
           collection: collectionName,
           verified: isVerified,
@@ -645,7 +660,7 @@ function RaffleAppInner() {
           params: {
             ownerAddress: publicKey.toBase58(),
             page: 1,
-            limit: 100,
+            limit: 1000,
             displayOptions: { 
               showCollectionMetadata: true,
               showFungible: true // CRITICAL for fetching tokens
