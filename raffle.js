@@ -881,6 +881,7 @@ function RaffleAppInner() {
       setActiveRaffles(prev => [newRaffle, ...prev]);
       setIsCreating(false);
       setActiveTab('Active Raffles');
+      setFloorPrice(''); // Clear floor price field
       
       notify('Raffle created successfully!', 'success');
     } catch (e) {
