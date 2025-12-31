@@ -536,7 +536,7 @@ function RaffleAppInner() {
         
         // 2. Interface check
         // These are almost always NFTs
-        const nftInterfaces = ['V1_NFT', 'V2_NFT', 'COMPRESSED_NFT', 'ProgrammableNFT', 'Custom', 'LegacyNFT'];
+        const nftInterfaces = ['V1_NFT', 'V2_NFT', 'COMPRESSED_NFT', 'ProgrammableNFT', 'Custom', 'LegacyNFT', 'MplCoreAsset'];
         if (nftInterfaces.includes(interface_type)) return true;
         
         // 3. Special cases for FungibleAsset (SFTs)
