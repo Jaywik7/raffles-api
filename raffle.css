@@ -1927,3 +1927,38 @@
 .modal-body {
   color: #fff !important;
 }
+
+/* Final NFT Selector Mobile Fit Fixes */
+@media (max-width: 640px) {
+  .nft-selection-modal {
+    width: 95% !important;
+    max-width: 95% !important;
+    max-height: 85vh !important;
+    border-radius: 16px !important;
+  }
+
+  .modal-body {
+    padding: 12px !important;
+  }
+
+  .nft-list-grid {
+    gap: 8px !important;
+  }
+
+  .collection-group-card {
+    padding: 8px !important;
+  }
+
+  .collection-group-name {
+    font-size: 10px !important;
+    margin-top: 4px !important;
+    opacity: 0.9 !important;
+  }
+
+  .collection-count-badge {
+    bottom: 4px !important;
+    right: 4px !important;
+    padding: 1px 6px !important;
+    font-size: 9px !important;
+  }
+}
