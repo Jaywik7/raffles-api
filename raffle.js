@@ -226,6 +226,8 @@ function RaffleAppInner() {
   const [isLoadingNfts, setIsLoadingNfts] = useState(false);
   const [showNftModal, setShowNftModal] = useState(false);
   const [selectedNft, setSelectedNft] = useState(null);
+  const [nftCollectionGroups, setNftCollectionGroups] = useState([]);
+  const [selectedCollectionName, setSelectedCollectionName] = useState(null);
   const [tokenAmount, setTokenAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
@@ -558,6 +560,25 @@ function RaffleAppInner() {
 
       console.log("Processed NFTs:", filteredNfts.length);
       setWalletNfts(filteredNfts);
+
+      // --- GROUP BY COLLECTION ---
+      const groups = filteredNfts.reduce((acc, nft) => {
+        const key = nft.collection || 'Uncategorized';
+        if (!acc[key]) {
+          acc[key] = {
+            name: key,
+            image: nft.image, // Use the first NFT image as the group cover
+            count: 0,
+            items: []
+          };
+        }
+        acc[key].items.push(nft);
+        acc[key].count += 1;
+        return acc;
+      }, {});
+
+      setNftCollectionGroups(Object.values(groups).sort((a, b) => b.count - a.count));
+      setSelectedCollectionName(null); // Reset view when fetching
     } catch (e) {
       console.error("Helius DAS Error:", e);
       try {
@@ -1009,24 +1030,50 @@ function RaffleAppInner() {
     showNftModal && React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: () => setShowNftModal(false) },
       React.createElement('div', { className: 'nft-selection-modal', onClick: e => e.stopPropagation() },
         React.createElement('div', { className: 'modal-header' },
-          React.createElement('h2', null, verifiedFilter ? 'Verified Collections' : 'Select NFT prize'),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+            selectedCollectionName && React.createElement('button', { 
+              className: 'modal-back-btn',
+              onClick: () => setSelectedCollectionName(null)
+            }, '←'),
+            React.createElement('h2', null, selectedCollectionName || (verifiedFilter ? 'Verified Collections' : 'Select NFT prize'))
+          ),
           React.createElement('button', { className: 'modal-close', onClick: () => setShowNftModal(false) }, '×')
         ),
         React.createElement('div', { className: 'modal-body' },
           isLoadingNfts ? (
             React.createElement('div', { className: 'modal-loading' }, 'Fetching your NFTs...')
-          ) : walletNfts.length > 0 ? (
-            React.createElement('div', { className: 'nft-list-grid' },
-              walletNfts.map(nft => (
-                React.createElement('div', { 
-                  key: nft.mint, 
-                  className: 'nft-item-select',
-                  onClick: () => { setSelectedNft(nft); setShowNftModal(false); }
-                },
-                  React.createElement('img', { src: nft.image, alt: nft.name }),
-                  React.createElement('span', null, nft.name)
-                )
-              ))
+          ) : nftCollectionGroups.length > 0 ? (
+            !selectedCollectionName ? (
+              // --- COLLECTION GROUPS VIEW ---
+              React.createElement('div', { className: 'nft-list-grid' },
+                nftCollectionGroups.map(group => (
+                  React.createElement('div', { 
+                    key: group.name, 
+                    className: 'nft-item-select collection-group-card',
+                    onClick: () => setSelectedCollectionName(group.name)
+                  },
+                    React.createElement('div', { className: 'collection-image-wrap' },
+                      React.createElement('img', { src: group.image, alt: group.name }),
+                      React.createElement('span', { className: 'collection-count-badge' }, group.count)
+                    ),
+                    React.createElement('span', { className: 'collection-group-name' }, group.name)
+                  )
+                ))
+              )
+            ) : (
+              // --- INDIVIDUAL NFTS IN COLLECTION VIEW ---
+              React.createElement('div', { className: 'nft-list-grid' },
+                nftCollectionGroups.find(g => g.name === selectedCollectionName)?.items.map(nft => (
+                  React.createElement('div', { 
+                    key: nft.mint, 
+                    className: 'nft-item-select',
+                    onClick: () => { setSelectedNft(nft); setShowNftModal(false); }
+                  },
+                    React.createElement('img', { src: nft.image, alt: nft.name }),
+                    React.createElement('span', null, nft.name)
+                  )
+                ))
+              )
             )
           ) : (
             React.createElement('div', { className: 'modal-empty' }, 
