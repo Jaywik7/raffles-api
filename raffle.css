@@ -1979,4 +1979,28 @@
     padding: 1px 6px !important;
     font-size: 9px !important;
   }
+
+  .winner-modal {
+    width: 92% !important;
+    max-width: 92% !important;
+    max-height: 90vh !important;
+    margin: 0 auto;
+  }
+
+  .winner-modal-content {
+    padding: 20px 16px !important;
+  }
+
+  .winner-prize-card {
+    max-width: 220px !important;
+    padding: 10px !important;
+  }
+
+  .winner-prize-card img {
+    max-height: 140px !important;
+  }
+
+  .winner-modal-content h1 {
+    font-size: 20px !important;
+  }
 }
