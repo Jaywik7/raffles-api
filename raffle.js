@@ -530,6 +530,9 @@ function RaffleAppInner() {
                       content.files?.[0]?.url ||
                       './assets/micros.png';
         
+        // Check if the asset has a collection and if it is verified
+        const isVerified = asset.grouping?.some(g => g.group_key === 'collection') || false;
+
         // Try to get a human-readable collection name from metadata or grouping
         const collectionGroup = asset.grouping?.find(g => g.group_key === 'collection');
         const collectionName = asset.content?.metadata?.collection?.name || 
