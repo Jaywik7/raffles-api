@@ -1761,64 +1761,84 @@
 /* Mobile Header Optimization (iPhone/Smaller Screens) */
 @media (max-width: 640px) {
   .staggered-menu-header {
-    padding: 12px 8px !important; /* Reduced side padding to keep buttons inside */
+    padding: 16px 12px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
   
   .sm-logo-img {
-    height: 24px !important; /* Slightly smaller logo */
+    height: 32px !important; /* Made bigger */
   }
 
   .sm-toggle {
-    padding: 0 8px !important; /* More compact menu button */
-    font-size: 12px !important;
-    height: 32px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important; /* Made bigger */
+    height: 38px !important; /* Made bigger */
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
   }
 
   .raffle-fixed-header {
-    top: 12px !important;
+    top: 16px !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
     width: auto !important;
-    z-index: 60 !important; /* Ensure it stays above other header elements */
+    z-index: 60 !important;
   }
 
   .raffle-header-actions button[class*="wallet-adapter-button"] {
-    min-width: 90px !important;
-    width: 90px !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    line-height: 32px !important;
-    padding: 0 8px !important;
-    font-size: 10px !important;
+    min-width: 110px !important; /* Made bigger */
+    width: 110px !important; /* Made bigger */
+    height: 38px !important; /* Made bigger */
+    min-height: 38px !important;
+    line-height: 38px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important; /* Made bigger */
     border-radius: 50px !important;
   }
 
-  /* Adjust main container padding for smaller header */
+  /* Adjust main container padding for larger header */
   .raffle-site {
-    padding-top: 60px;
+    padding-top: 70px;
   }
 
   .raffle-container {
     padding: 20px 16px;
   }
 
-  /* Make navigation tabs slightly smaller too */
+  /* Center align the tabs and place Create button under them */
   .raffle-nav {
-    gap: 12px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 20px !important;
+    width: 100%;
+  }
+
+  /* Sub-container for tabs to keep them in a row */
+  .raffle-nav > button:not(.raffle-btn-create-nav) {
+    margin: 0;
+  }
+
+  /* If the tabs are direct children, we might need a way to group them or just flex-wrap */
+  .raffle-nav {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
   }
 
   .raffle-nav-item {
-    font-size: 14px;
+    font-size: 15px;
+    padding: 8px 12px;
   }
 
   .raffle-btn-create-nav {
-    font-size: 12px;
-    padding: 6px 12px;
+    order: 2; /* Force to bottom */
+    width: 200px; /* Wider for centered look */
+    justify-content: center;
+    font-size: 14px;
+    padding: 10px 20px;
+    margin: 10px 0 0 0 !important; /* Remove the desktop left margin */
   }
 }
