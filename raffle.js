@@ -260,6 +260,7 @@ function RaffleAppInner() {
   const [participants, setParticipants] = useState([]);
   const [liveActivity, setLiveActivity] = useState([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   const notify = (message, type = 'success', persistent = false) => {
     setNotification({ message, type, persistent });
@@ -1255,6 +1256,26 @@ function RaffleAppInner() {
       raffle: winningRaffle, 
       onClose: () => setWinningRaffle(null) 
     }),
+    // Claim Instructions Modal
+    showClaimModal && React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: () => setShowClaimModal(false) },
+      React.createElement('div', { className: 'nft-selection-modal winner-modal', onClick: e => e.stopPropagation() },
+        React.createElement('div', { className: 'winner-modal-content' },
+          React.createElement('div', { className: 'winner-crown' }, '🎁'),
+          React.createElement('h1', null, 'HOW TO CLAIM'),
+          React.createElement('p', { className: 'winner-instructions', style: { fontSize: '16px', margin: '20px 0', lineHeight: '1.6', opacity: '0.9', color: '#fff' } }, 
+            'If you have won a raffle, please join our Discord and open a support ticket to receive your prize.'
+          ),
+          React.createElement('a', { 
+            href: 'https://discord.gg/qZHKN8ws9H', 
+            target: '_blank', 
+            rel: 'noopener noreferrer',
+            className: 'raffle-btn-buy large',
+            style: { textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            onClick: () => setShowClaimModal(false)
+          }, 'Claim Now')
+        )
+      )
+    ),
     React.createElement(StaggeredMenu, {
       className: scrolled ? 'is-scrolled' : '',
       position: 'right',
@@ -1283,7 +1304,7 @@ function RaffleAppInner() {
         React.createElement(WalletMultiButton, { className: 'raffle-wallet-button' })
       )
     ),
-    React.createElement('main', { className: 'raffle-site' },
+    React.createElement('main', { className: `raffle-site ${isAuthorizedCreator ? 'is-authorized' : ''}` },
       React.createElement(GalaxyBackground, null),
       React.createElement('div', { className: 'raffle-container' },
         React.createElement(LiveActivityFeed, { activities: liveActivity }),
@@ -1301,10 +1322,17 @@ function RaffleAppInner() {
                   className: `raffle-nav-item ${activeTab === tab ? 'active' : ''}`,
                   onClick: () => setActiveTab(tab)
                 }, tab)),
-                isAuthorizedCreator && React.createElement('button', { 
-                  className: 'raffle-btn-create-nav',
-                  onClick: () => setActiveTab('Create')
-                }, 'Create Raffle')
+                isAuthorizedCreator ? (
+                  React.createElement('button', { 
+                    className: 'raffle-btn-create-nav',
+                    onClick: () => setActiveTab('Create')
+                  }, 'Create Raffle')
+                ) : (
+                  React.createElement('button', { 
+                    className: 'raffle-btn-create-nav claim-btn-mobile',
+                    onClick: () => setShowClaimModal(true)
+                  }, 'How to claim prize?')
+                )
               )
             )
           )

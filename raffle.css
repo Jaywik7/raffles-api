@@ -1808,6 +1808,14 @@
     padding: 20px 16px;
   }
 
+  .raffle-btn-create-nav {
+    display: none !important; /* Hide by default on desktop for non-creators */
+  }
+
+  .is-authorized .raffle-btn-create-nav {
+    display: inline-flex !important; /* Show on desktop if authorized */
+  }
+
   /* Center align the tabs in one line and place Create button under them */
   .raffle-nav {
     display: flex !important;
@@ -1826,6 +1834,7 @@
   }
 
   .raffle-btn-create-nav {
+    display: inline-flex !important; /* Force show on mobile */
     flex-basis: 100%; /* Force this button to its own line */
     max-width: 220px;
     margin: 10px auto 0 !important;
