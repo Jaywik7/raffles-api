@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from 'https://esm.sh/@solana/web3.js';
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createTransferCheckedInstruction } from 'https://esm.sh/@solana/spl-token';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createTransferCheckedInstruction, createAssociatedTokenAccountInstruction } from 'https://esm.sh/@solana/spl-token';
 import { useWallet, useConnection } from 'https://esm.sh/@solana/wallet-adapter-react?deps=react@18';
 import { WalletMultiButton } from 'https://esm.sh/@solana/wallet-adapter-react-ui?deps=react@18';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
@@ -915,21 +915,32 @@ function RaffleAppInner() {
     const isNtzPayment = (raffle.paymentSymbol && raffle.paymentSymbol.toString().toUpperCase() === 'NTZ') || 
                          (raffle.paymentMint === NTZ_MINT.toBase58());
     
-    const ticketPriceUnits = isNtzPayment ? 1000000 : LAMPORTS_PER_SOL;
-    const pricePerTicketInUnits = Math.round(raffle.price * ticketPriceUnits);
-
-    // --- CALCULATE SPLIT PER TICKET (4.75% to Micros Treasury, 95.25% to Creator) ---
-    // As requested: 4.75% now goes to Treasury, 95.25% to Creator
-    const treasurySharePerTicket = Math.floor(pricePerTicketInUnits * 0.0475);
-    const creatorSharePerTicket = pricePerTicketInUnits - treasurySharePerTicket;
-
-    const totalTreasuryAmount = treasurySharePerTicket * quantity;
-    const totalCreatorAmount = creatorSharePerTicket * quantity;
-    const creatorPubkey = new PublicKey(raffle.creator);
-
     notify(`Please approve the purchase of ${quantity} ticket(s) in your wallet...`, 'info', true);
     setIsBuying(true);
+
     try {
+      // 1. Fetch decimals and prepare amounts
+      let decimals = 9; // Default to 9
+      if (isNtzPayment) {
+        try {
+          const mintInfo = await connection.getParsedAccountInfo(NTZ_MINT);
+          decimals = mintInfo.value?.data?.parsed?.info?.decimals || 9;
+        } catch (e) {
+          console.error("Failed to fetch NTZ decimals:", e);
+        }
+      }
+
+      const ticketPriceUnits = isNtzPayment ? Math.pow(10, decimals) : LAMPORTS_PER_SOL;
+      const pricePerTicketInUnits = Math.round(raffle.price * ticketPriceUnits);
+
+      // --- CALCULATE SPLIT PER TICKET (4.75% to Micros Treasury, 95.25% to Creator) ---
+      const treasurySharePerTicket = Math.floor(pricePerTicketInUnits * 0.0475);
+      const creatorSharePerTicket = pricePerTicketInUnits - treasurySharePerTicket;
+
+      const totalTreasuryAmount = treasurySharePerTicket * quantity;
+      const totalCreatorAmount = creatorSharePerTicket * quantity;
+      const creatorPubkey = new PublicKey(raffle.creator);
+
       const transaction = new Transaction();
 
       if (isNtzPayment) {
@@ -938,30 +949,46 @@ function RaffleAppInner() {
         const treasuryAta = await getAssociatedTokenAddress(NTZ_MINT, MICROS_TREASURY);
         const creatorAta = await getAssociatedTokenAddress(NTZ_MINT, creatorPubkey);
 
-        // Check if user has the token account
-        try {
-          const accountInfo = await connection.getAccountInfo(userAta);
-          if (!accountInfo) {
-            throw new Error(`You don't have any $NTZ tokens in your wallet.`);
-          }
-        } catch (e) {
-          throw new Error(`You don't have any $NTZ tokens in your wallet.`);
+        // Check user account
+        const userAtaInfo = await connection.getAccountInfo(userAta);
+        if (!userAtaInfo) {
+          throw new Error(`You don't have an $NTZ token account. Please get some $NTZ first!`);
         }
 
-        // 1. Send Commission to Micros Treasury (95.25%)
-        if (totalTreasuryAmount > 0) {
+        // Ensure treasury ATA exists
+        const treasuryAtaInfo = await connection.getAccountInfo(treasuryAta);
+        if (!treasuryAtaInfo) {
           transaction.add(
-            createTransferCheckedInstruction(
-              userAta, NTZ_MINT, treasuryAta, publicKey, totalTreasuryAmount, 6
+            createAssociatedTokenAccountInstruction(
+              publicKey, treasuryAta, MICROS_TREASURY, NTZ_MINT
             )
           );
         }
 
-        // 2. Send Remaining to Raffle Creator (4.75%)
+        // Ensure creator ATA exists
+        const creatorAtaInfo = await connection.getAccountInfo(creatorAta);
+        if (!creatorAtaInfo) {
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey, creatorAta, creatorPubkey, NTZ_MINT
+            )
+          );
+        }
+
+        // 1. Send Commission to Micros Treasury
+        if (totalTreasuryAmount > 0) {
+          transaction.add(
+            createTransferCheckedInstruction(
+              userAta, NTZ_MINT, treasuryAta, publicKey, totalTreasuryAmount, decimals
+            )
+          );
+        }
+
+        // 2. Send Remaining to Raffle Creator
         if (totalCreatorAmount > 0) {
           transaction.add(
             createTransferCheckedInstruction(
-              userAta, NTZ_MINT, creatorAta, publicKey, totalCreatorAmount, 6
+              userAta, NTZ_MINT, creatorAta, publicKey, totalCreatorAmount, decimals
             )
           );
         }
