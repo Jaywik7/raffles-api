@@ -1480,10 +1480,17 @@ function RaffleAppInner() {
                     React.createElement('div', { className: 'raffle-item-info' },
                       React.createElement('h3', null, raffle.name),
                       React.createElement('div', { className: 'raffle-item-stats' },
-                        React.createElement('span', null, 'Ticket Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
-                        React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
-                        raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
-                          `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
+                        React.createElement('span', null, 
+                          React.createElement('strong', null, 'Ticket Price: '), 
+                          raffle.price, ' ', raffle.paymentSymbol || 'SOL'
+                        ),
+                        React.createElement('span', null, 
+                          React.createElement('strong', null, 'Tickets Sold: '), 
+                          raffle.sold, '/', raffle.supply
+                        ),
+                        raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5' } }, 
+                          React.createElement('strong', null, 'Floor Price: '),
+                          raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice, ' SOL'
                         )
                       ),
                       raffle.limitPerWallet && React.createElement('div', { className: 'raffle-item-limit-info' },
@@ -1623,11 +1630,18 @@ function RaffleAppInner() {
                       ) : (
                         React.createElement(React.Fragment, null,
                           React.createElement('div', { className: 'raffle-item-stats' },
-                            React.createElement('span', null, 'Ticket Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
-                            React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
-                            raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
-                          `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
-                        )
+                            React.createElement('span', null, 
+                              React.createElement('strong', null, 'Ticket Price: '), 
+                              raffle.price, ' ', raffle.paymentSymbol || 'SOL'
+                            ),
+                            React.createElement('span', null, 
+                              React.createElement('strong', null, 'Tickets Sold: '), 
+                              raffle.sold, '/', raffle.supply
+                            ),
+                            raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5' } }, 
+                              React.createElement('strong', null, 'Floor Price: '),
+                              raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice, ' SOL'
+                            )
                           ),
                           React.createElement('div', { className: 'raffle-item-times' },
                             React.createElement('div', { className: 'raffle-time-row' },
