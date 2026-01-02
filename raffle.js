@@ -894,6 +894,32 @@ function RaffleAppInner() {
       setFloorPrice(''); // Clear floor price field
       
       notify('Raffle created successfully!', 'success');
+
+      // --- AUTO-FETCH FLOOR PRICE FROM MAGIC EDEN ---
+      if (selectedNft && selectedNft.mint) {
+        console.log("Triggering auto-floor fetch for:", selectedNft.mint);
+        fetch('/api/fetch-floor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            raffleId: newRaffle.id, 
+            mintAddress: selectedNft.mint 
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log("Auto-floor updated:", data.floorPrice);
+            // Update local state so the UI reflects the fetched floor price immediately
+            setActiveRaffles(prev => prev.map(r => 
+              r.id === newRaffle.id ? { ...r, floorPrice: data.floorPrice } : r
+            ));
+          } else {
+            console.warn("Floor fetch returned error:", data.error);
+          }
+        })
+        .catch(err => console.error("Floor fetch background error:", err));
+      }
     } catch (e) {
       console.error(e);
       notify('Failed to create raffle: ' + e.message, 'error');
