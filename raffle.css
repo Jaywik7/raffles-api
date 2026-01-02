@@ -395,6 +395,13 @@
   justify-content: center;
 }
 
+.raffle-btn-buy.sold-out {
+  background: #ff4d4d !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+}
+
 .raffle-spinner {
   width: 18px;
   height: 18px;

@@ -440,6 +440,27 @@ function RaffleAppInner() {
     }
   };
 
+  const fetchUserEntries = async () => {
+    if (!publicKey) return;
+    try {
+      const { data, error } = await supabase
+        .from('entries')
+        .select('raffle_id, quantity')
+        .eq('wallet_address', publicKey.toBase58());
+
+      if (error) throw error;
+
+      const counts = data.reduce((acc, curr) => {
+        acc[curr.raffle_id] = (acc[curr.raffle_id] || 0) + curr.quantity;
+        return acc;
+      }, {});
+
+      setUserPurchasedCounts(counts);
+    } catch (e) {
+      console.error('Error fetching user entries:', e);
+    }
+  };
+
   const fetchLiveActivity = async () => {
     try {
       const { data, error } = await supabase
@@ -462,6 +483,9 @@ function RaffleAppInner() {
   useEffect(() => {
     fetchRaffles();
     fetchLiveActivity();
+    if (publicKey) {
+      fetchUserEntries();
+    }
     const interval = setInterval(fetchLiveActivity, 30000); // Update every 30s
     return () => clearInterval(interval);
   }, [publicKey]);
@@ -1355,11 +1379,18 @@ function RaffleAppInner() {
                           onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: (prev[selectedRaffleDetails.id] || 1) + 1 }))
                         }, '+')
                       ),
-                      React.createElement('button', { 
-                        className: 'raffle-btn-buy large',
-                        onClick: () => { handleBuyTicket(selectedRaffleDetails); setSelectedRaffleDetails(null); },
-                        disabled: isBuying
-                      }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`)
+                      (() => {
+                        const isSoldOut = selectedRaffleDetails.sold >= selectedRaffleDetails.supply;
+                        return React.createElement('button', { 
+                          className: `raffle-btn-buy large ${isSoldOut ? 'sold-out' : ''}`,
+                          onClick: () => { 
+                            if (isSoldOut) return;
+                            handleBuyTicket(selectedRaffleDetails); 
+                            setSelectedRaffleDetails(null); 
+                          },
+                          disabled: isBuying || isSoldOut
+                        }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : (isSoldOut ? 'Sold Out' : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`));
+                      })()
                     )
                   )
                 )
@@ -1596,14 +1627,18 @@ function RaffleAppInner() {
                             }
                           }, '+')
                         ),
-                        React.createElement('button', { 
-                        className: 'raffle-btn-buy', 
-                        onClick: (e) => {
-                          e.stopPropagation();
-                          handleBuyTicket(raffle);
-                        },
-                        disabled: isBuying
-                      }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : `Buy ${buyQuantities[raffle.id] || 1} Ticket`)
+                        (() => {
+                          const isSoldOut = raffle.sold >= raffle.supply;
+                          return React.createElement('button', { 
+                            className: `raffle-btn-buy ${isSoldOut ? 'sold-out' : ''}`, 
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              if (isSoldOut) return;
+                              handleBuyTicket(raffle);
+                            },
+                            disabled: isBuying || isSoldOut
+                          }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : (isSoldOut ? 'Sold Out' : `Buy ${buyQuantities[raffle.id] || 1} Ticket`));
+                        })()
                       )
                     )
                   )
