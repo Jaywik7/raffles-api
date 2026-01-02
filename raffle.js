@@ -191,7 +191,10 @@ function LiveActivityFeed({ activities }) {
       const now = Date.now();
       const itemsToAdd = newItems.map(item => ({ ...item, id: now + Math.random(), timestamp: now }));
       
-      setDisplayActivities(prev => [...prev, ...itemsToAdd]);
+      setDisplayActivities(prev => {
+        const combined = [...prev, ...itemsToAdd];
+        return combined.slice(-4); // Keep up to 4 so we can animate the top one out
+      });
 
       // Remove each item after 5 seconds
       itemsToAdd.forEach(item => {
@@ -204,9 +207,16 @@ function LiveActivityFeed({ activities }) {
 
   if (displayActivities.length === 0) return null;
 
+  // Only the last 3 are "active", any beyond that (the oldest) is "exiting"
+  const activeLimit = 3;
+
   return React.createElement('div', { className: 'live-activity-toast-container' },
-    displayActivities.map((act) => (
-      React.createElement('div', { key: act.id, className: 'activity-toast' },
+    displayActivities.map((act, index) => {
+      const isExiting = (displayActivities.length > activeLimit && index === 0);
+      return React.createElement('div', { 
+        key: act.id, 
+        className: `activity-toast ${isExiting ? 'exiting' : ''}` 
+      },
         React.createElement('div', { className: 'activity-header' },
           React.createElement('span', { className: 'activity-dot' }),
           'Live Activity'
@@ -218,8 +228,8 @@ function LiveActivityFeed({ activities }) {
           ' for ',
           React.createElement('span', { className: 'activity-raffle' }, act.raffleName)
         )
-      )
-    ))
+      );
+    })
   );
 }
 
