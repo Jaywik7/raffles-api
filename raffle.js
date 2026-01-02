@@ -519,7 +519,11 @@ function RaffleAppInner() {
             ownerAddress: publicKey.toBase58(),
             page: 1,
             limit: 1000,
-            displayOptions: { showCollectionMetadata: true },
+            displayOptions: { 
+              showCollectionMetadata: true,
+              showFungible: true,
+              showNativeBalance: true
+            },
           },
         }),
       });
@@ -543,11 +547,23 @@ function RaffleAppInner() {
         
         // 1. Decimals check (MOST RELIABLE)
         // If decimals are 0, it's an NFT or SFT (Collectible)
+        // We check for undefined/null as well because some new standards might not provide it in the same way
         if (tokenInfo.decimals === 0) return true;
         
         // 2. Interface check
-        // These are almost always NFTs
-        const nftInterfaces = ['V1_NFT', 'V2_NFT', 'COMPRESSED_NFT', 'ProgrammableNFT', 'Custom', 'LegacyNFT', 'MplCoreAsset'];
+        // These are almost always NFTs/Collectibles
+        const nftInterfaces = [
+          'V1_NFT', 
+          'V2_NFT', 
+          'COMPRESSED_NFT', 
+          'ProgrammableNFT', 
+          'Custom', 
+          'LegacyNFT', 
+          'MplCoreAsset', 
+          'MplCoreCollection',
+          'V1_PRINT_EDITION',
+          'V2_PRINT_EDITION'
+        ];
         if (nftInterfaces.includes(interface_type)) return true;
         
         // 3. Special cases for FungibleAsset (SFTs)
@@ -626,23 +642,44 @@ function RaffleAppInner() {
     } catch (e) {
       console.error("Helius DAS Error:", e);
       try {
-        console.log("Attempting fallback token account fetch...");
-        const accounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
-          programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-        });
-        const mapped = accounts.value
+        console.log("Attempting robust fallback token account fetch...");
+        const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkThT9S7ii7z6MDN6KR7f7f2');
+
+        const [legacyAccounts, token2022Accounts] = await Promise.all([
+          connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }),
+          connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID })
+        ]);
+
+        const allAccounts = [...legacyAccounts.value, ...token2022Accounts.value];
+        const mapped = allAccounts
           .filter(a => {
             const info = a.account.data.parsed.info;
-            // Only NFTs (amount 1, decimals 0) that are NOT frozen
-            return info.tokenAmount.uiAmount === 1 && info.tokenAmount.decimals === 0 && info.state !== 'frozen';
+            // Catch anything with 0 decimals (Collectibles/NFTs/SFTs)
+            return info.tokenAmount.decimals === 0 && info.tokenAmount.uiAmount >= 1 && info.state !== 'frozen';
           })
           .map(a => ({
             mint: a.account.data.parsed.info.mint,
             name: `NFT (${a.account.data.parsed.info.mint.slice(0, 4)}...)`,
             image: './assets/micros.png',
+            collection: 'Uncategorized',
+            verified: false
           }));
         console.log("Fallback results:", mapped.length);
         setWalletNfts(mapped);
+        
+        // Group fallback results too
+        const groups = mapped.reduce((acc, nft) => {
+          const key = 'Uncategorized';
+          if (!acc[key]) {
+            acc[key] = { name: key, image: nft.image, count: 0, items: [] };
+          }
+          acc[key].items.push(nft);
+          acc[key].count += 1;
+          return acc;
+        }, {});
+        setNftCollectionGroups(Object.values(groups));
+        
       } catch (fallbackError) {
         console.error("All fetch methods failed:", fallbackError);
         notify("Unable to load NFTs: " + (fallbackError.message || "Unknown error"), 'error');
