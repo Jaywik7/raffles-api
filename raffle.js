@@ -295,6 +295,7 @@ function RaffleAppInner() {
     'BJWGkhiBagxrt87Wiw4HLwNYGtB1rrJVkVC6AcVZR2U1',
     '266SHaNB6TeRH4cJuui3UKXGVQKaQskiFCG6pn5u2SHd',
     '8UbbCaR2eWf1hMV8Rq1TZYUup3L6EzPuzryN9EA2mLSy'
+    '4Dqhw8LpjGYLndocdQENDg7KRr1MdYdvB6KWTbLjK6Jg'
   ], []);
 
   const isAuthorizedCreator = useMemo(() => {
