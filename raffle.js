@@ -1166,6 +1166,30 @@ function RaffleAppInner() {
     }
   };
 
+  const handleManualEnd = async (raffle) => {
+    if (!publicKey || publicKey.toBase58() !== raffle.creator) {
+      notify('Only the raffle creator can end this raffle.', 'error');
+      return;
+    }
+    
+    if (raffle.sold < raffle.supply) {
+      notify('All tickets must be sold before ending.', 'error');
+      return;
+    }
+
+    notify('Ending raffle and picking winner... 🎲', 'info', true);
+    try {
+      const { error } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: raffle.id });
+      if (error) throw error;
+      
+      notify('Winner picked successfully! 🎊', 'success');
+      fetchRaffles(); // Refresh list to reflect ended status
+    } catch (e) {
+      console.error("Manual End Error:", e);
+      notify('Failed to end raffle: ' + e.message, 'error');
+    }
+  };
+
   const handleCollectionChange = (idx, value) => {
     const next = [...collections];
     next[idx] = value;
@@ -1317,6 +1341,21 @@ function RaffleAppInner() {
             React.createElement('div', { className: 'raffle-detail-content' },
               React.createElement('div', { className: 'raffle-detail-image-wrap' },
                 React.createElement('img', { src: selectedRaffleDetails.image, alt: selectedRaffleDetails.name, className: 'raffle-detail-image' }),
+                
+                // Manual End Button for Creator
+                publicKey && publicKey.toBase58() === selectedRaffleDetails.creator && selectedRaffleDetails.sold >= selectedRaffleDetails.supply && (
+                  React.createElement('div', { className: 'raffle-manual-end-overlay' },
+                    React.createElement('button', {
+                      className: 'raffle-btn-manual-end',
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        handleManualEnd(selectedRaffleDetails);
+                        setSelectedRaffleDetails(null);
+                      }
+                    }, 'End & Pick Winner')
+                  )
+                ),
+
                 selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'raffle-prize-badge large' }, 
                   `+ ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`
                 )
@@ -1546,6 +1585,20 @@ function RaffleAppInner() {
                   },
                     React.createElement('div', { className: 'raffle-item-image' },
                       React.createElement('img', { src: raffle.image, alt: raffle.name }),
+                      
+                      // Manual End Button for Creator when Sold Out
+                      publicKey && publicKey.toBase58() === raffle.creator && raffle.sold >= raffle.supply && (
+                        React.createElement('div', { className: 'raffle-manual-end-overlay' },
+                          React.createElement('button', {
+                            className: 'raffle-btn-manual-end',
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleManualEnd(raffle);
+                            }
+                          }, 'End & Pick Winner')
+                        )
+                      ),
+
                       React.createElement('div', { 
                         className: `raffle-type-badge ${raffle.tokenPrize && !raffle.image.includes(raffle.name) ? 'dual' : (raffle.tokenPrize ? 'token' : 'nft')}` 
                       }, raffle.tokenPrize && !raffle.image.includes(raffle.name) ? 'NFT + TOKEN' : (raffle.tokenPrize ? 'TOKEN PRIZE' : 'NFT PRIZE')),
