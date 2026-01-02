@@ -569,13 +569,12 @@ function RaffleAppInner() {
         const tokenInfo = asset.token_info || {};
         const interface_type = asset.interface;
         
-        // 1. Decimals check (MOST RELIABLE)
+        // 1. Decimals check (MOST RELIABLE for SPL-based NFTs)
         // If decimals are 0, it's an NFT or SFT (Collectible)
-        // We check for undefined/null as well because some new standards might not provide it in the same way
         if (tokenInfo.decimals === 0) return true;
         
         // 2. Interface check
-        // These are almost always NFTs/Collectibles
+        // These are interfaces for NFTs/Collectibles
         const nftInterfaces = [
           'V1_NFT', 
           'V2_NFT', 
@@ -586,20 +585,29 @@ function RaffleAppInner() {
           'MplCoreAsset', 
           'MplCoreCollection',
           'V1_PRINT_EDITION',
-          'V2_PRINT_EDITION'
+          'V2_PRINT_EDITION',
+          'V1_COLLECTION',
+          'Collection'
         ];
         if (nftInterfaces.includes(interface_type)) return true;
         
-        // 3. Special cases for FungibleAsset (SFTs)
-        // If it's a FungibleAsset and decimals are undefined/null, it's likely an NFT
-        if (interface_type === 'FungibleAsset' && (tokenInfo.decimals === undefined || tokenInfo.decimals === null)) return true;
+        // 3. Asset Type check (DAS specific)
+        if (asset.content?.metadata?.token_standard === 'NonFungible' || 
+            asset.content?.metadata?.token_standard === 'NonFungibleEdition') return true;
+
+        // 4. Special cases for FungibleAsset (SFTs)
+        // If it's a FungibleAsset and decimals are missing/0, it's likely a collectible
+        if (interface_type === 'FungibleAsset' && (!tokenInfo.decimals || tokenInfo.decimals === 0)) return true;
         
         return false;
       }).map(asset => {
         const content = asset.content || {};
         const metadata = content.metadata || {};
+        const json_uri = content.json_uri || metadata.uri || '';
+        
         const image = content.links?.image || 
                       metadata.image ||
+                      content.files?.find(f => f.mime?.startsWith('image/'))?.uri ||
                       content.files?.[0]?.uri || 
                       content.files?.[0]?.url ||
                       './assets/micros.png';
@@ -623,7 +631,8 @@ function RaffleAppInner() {
           image: image,
           collection: collectionName,
           verified: isVerified,
-          frozen: asset.ownership?.frozen || false
+          frozen: asset.ownership?.frozen || false,
+          json_uri: json_uri
         };
       });
 
@@ -631,14 +640,9 @@ function RaffleAppInner() {
         // Hide non-transferable (frozen) NFTs
         if (n.frozen) return false;
         
-        const nameLower = n.name.toLowerCase();
-        // Hide specifically blacklisted collections and keywords (singular catches plural)
-        if (nameLower.includes('lucky emmy')) return false;
-        if (nameLower.includes('airdrop')) return false;
-        if (nameLower.includes('reward')) return false;
-        
-        // Apply verified filter if requested
+        // Apply verified filter ONLY if requested
         if (onlyVerified && (!n.verified || n.collection === 'None')) return false;
+        
         return true;
       });
 
@@ -751,14 +755,12 @@ function RaffleAppInner() {
         .filter(asset => {
           const tokenInfo = asset.token_info || {};
           
-          // ULTIMATE TOKEN CHECK: If it has more than 0 decimals, it's a fungible token.
+          // A token MUST have decimals > 0. If it has 0 decimals, it belongs in the 'NFTs' tab.
           const hasDecimals = tokenInfo.decimals > 0;
           
-          // Also check Fungible interfaces for tokens that might have 0 decimals but are intended as tokens (rare)
-          // but prioritize decimals check to avoid catching NFTs.
+          // Must be a fungible interface
           const isFungibleInterface = asset.interface === 'FungibleToken' || asset.interface === 'FungibleAsset';
           
-          // To be a token in our app, it MUST have decimals > 0 to separate from the 'Collectibles' tab.
           return hasDecimals && isFungibleInterface;
         })
         .map(asset => {
