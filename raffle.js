@@ -1095,9 +1095,9 @@ function RaffleAppInner() {
     let list = [...activeRaffles];
     if (sortBy === 'Ending Soon') {
       return list.sort((a, b) => new Date(a.endsAt) - new Date(b.endsAt));
-    } else if (sortBy === 'Price: Low to High') {
+    } else     if (sortBy === 'Ticket Price: Low to High') {
       return list.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'Price: High to Low') {
+    } else if (sortBy === 'Ticket Price: High to Low') {
       return list.sort((a, b) => b.price - a.price);
     }
     // Default: Newest
@@ -1419,7 +1419,7 @@ function RaffleAppInner() {
                   value: sortBy,
                   onChange: (e) => setSortBy(e.target.value)
                 }, 
-                  ['Newest', 'Ending Soon', 'Price: Low to High', 'Price: High to Low'].map(opt => 
+                  ['Newest', 'Ending Soon', 'Ticket Price: Low to High', 'Ticket Price: High to Low'].map(opt => 
                     React.createElement('option', { key: opt, value: opt }, opt)
                   )
                 )
@@ -1470,7 +1470,7 @@ function RaffleAppInner() {
                     React.createElement('div', { className: 'raffle-item-info' },
                       React.createElement('h3', null, raffle.name),
                       React.createElement('div', { className: 'raffle-item-stats' },
-                        React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
+                        React.createElement('span', null, 'Ticket Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                         React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
                         raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
                           `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
@@ -1613,7 +1613,7 @@ function RaffleAppInner() {
                       ) : (
                         React.createElement(React.Fragment, null,
                           React.createElement('div', { className: 'raffle-item-stats' },
-                            React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
+                            React.createElement('span', null, 'Ticket Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                             React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
                             raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
                           `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
