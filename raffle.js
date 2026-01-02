@@ -1041,11 +1041,11 @@ function RaffleAppInner() {
       notify('Confirming purchase on-chain... ⛓️', 'info', true);
       await connection.confirmTransaction(signature, 'processed');
 
-      // Update Supabase
-      const { error: dbError } = await supabase
-        .from('raffles')
-        .update({ ticket_sold: raffle.sold + quantity })
-        .eq('id', raffle.id);
+      // Update Supabase using atomic increment
+      const { error: dbError } = await supabase.rpc('increment_ticket_sold', { 
+        target_raffle_id: raffle.id, 
+        quantity_to_add: quantity 
+      });
 
       if (dbError) throw dbError;
 
