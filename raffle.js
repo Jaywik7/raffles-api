@@ -1251,7 +1251,7 @@ function RaffleAppInner() {
                   ),
                   selectedRaffleDetails.floorPrice && React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Floor Price'),
-                    React.createElement('span', { style: { color: '#FFD55F' } }, 
+                    React.createElement('span', { style: { color: '#FFC0F5' } }, 
                       selectedRaffleDetails.floorPrice < 0.001 ? '< 0.001' : selectedRaffleDetails.floorPrice, 
                       ' SOL'
                     )
@@ -1472,7 +1472,7 @@ function RaffleAppInner() {
                       React.createElement('div', { className: 'raffle-item-stats' },
                         React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                         React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
-                        raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFD55F', fontWeight: '700' } }, 
+                        raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
                           `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
                         )
                       ),
@@ -1615,7 +1615,7 @@ function RaffleAppInner() {
                           React.createElement('div', { className: 'raffle-item-stats' },
                             React.createElement('span', null, 'Price: ', raffle.price, ' ', raffle.paymentSymbol || 'SOL'),
                             React.createElement('span', null, 'Tickets Sold: ', raffle.sold, '/', raffle.supply),
-                            raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFD55F', fontWeight: '700' } }, 
+                            raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5', fontWeight: '700' } }, 
                           `Floor Price: ${raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice} SOL`
                         )
                           ),
