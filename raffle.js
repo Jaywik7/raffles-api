@@ -448,20 +448,12 @@ function RaffleAppInner() {
     setPastRaffles(prev => prev.filter(r => r.id !== raffleId));
 
     try {
-      // 2. Perform database cleanup in the background
-      const { error: entriesError } = await supabase
-        .from('entries')
-        .delete()
-        .eq('raffle_id', raffleId);
+      // 2. Perform database cleanup using RPC (Bypasses RLS for Admin Action)
+      const { error } = await supabase.rpc('delete_raffle_admin', { 
+        target_raffle_id: raffleId 
+      });
       
-      if (entriesError) throw entriesError;
-
-      const { error: raffleError } = await supabase
-        .from('raffles')
-        .delete()
-        .eq('id', raffleId);
-      
-      if (raffleError) throw raffleError;
+      if (error) throw error;
 
       notify("Raffle deleted successfully.", 'success');
       if (activeTab === 'Admin') fetchAdminStats();
