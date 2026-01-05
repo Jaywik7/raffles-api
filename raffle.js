@@ -1917,6 +1917,14 @@ function RaffleAppInner() {
                         `+ ${raffle.tokenPrize.amount.toLocaleString()} ${raffle.tokenPrize.symbol}`
                       ),
                       React.createElement('div', { className: 'raffle-card-share' },
+                        isAdmin && React.createElement('button', {
+                          title: 'Admin Delete',
+                          className: 'admin-quick-delete-btn',
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleDeleteRaffle(raffle.id);
+                          }
+                        }, '🗑️'),
                         React.createElement('button', { 
                           title: 'Share on X',
                           onClick: (e) => {
@@ -2027,7 +2035,17 @@ function RaffleAppInner() {
                     onClick: () => setSelectedRaffleDetails(raffle)
                   },
                     React.createElement('div', { className: 'raffle-item-image' },
-                      React.createElement('img', { src: raffle.image, alt: raffle.name })
+                      React.createElement('img', { src: raffle.image, alt: raffle.name }),
+                      isAdmin && React.createElement('div', { className: 'raffle-card-share' },
+                        React.createElement('button', {
+                          title: 'Admin Delete',
+                          className: 'admin-quick-delete-btn',
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleDeleteRaffle(raffle.id);
+                          }
+                        }, '🗑️')
+                      )
                     ),
                     React.createElement('div', { className: 'raffle-item-info' },
                       React.createElement('h3', null, raffle.name),

@@ -2341,3 +2341,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Admin Delete Button */
+.admin-quick-delete-btn {
+  background: rgba(255, 77, 77, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.admin-quick-delete-btn:hover {
+  background: #ff4d4d !important;
+  transform: scale(1.1) !important;
+}
