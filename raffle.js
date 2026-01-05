@@ -443,7 +443,12 @@ function RaffleAppInner() {
     if (!isAdmin) return;
     if (!confirm("Are you sure you want to delete this raffle? This will remove all entries as well.")) return;
     
+    // 1. UPDATE UI INSTANTLY (Fixes Vercel INP performance warning)
+    setActiveRaffles(prev => prev.filter(r => r.id !== raffleId));
+    setPastRaffles(prev => prev.filter(r => r.id !== raffleId));
+
     try {
+      // 2. Perform database cleanup in the background
       const { error: entriesError } = await supabase
         .from('entries')
         .delete()
@@ -458,16 +463,12 @@ function RaffleAppInner() {
       
       if (raffleError) throw raffleError;
 
-      // Optimistic UI update: Remove it from local state immediately
-      setActiveRaffles(prev => prev.filter(r => r.id !== raffleId));
-      setPastRaffles(prev => prev.filter(r => r.id !== raffleId));
-
       notify("Raffle deleted successfully.", 'success');
-      // fetchRaffles(); // No longer strictly needed for immediate removal, but good for sync
       if (activeTab === 'Admin') fetchAdminStats();
     } catch (e) {
       console.error("Delete error:", e);
-      notify("Failed to delete raffle.", 'error');
+      notify("Failed to delete raffle. Refreshing data...", 'error');
+      fetchRaffles(); // Re-sync if DB delete failed
     }
   };
 
