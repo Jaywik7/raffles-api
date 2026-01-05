@@ -1725,13 +1725,7 @@ function RaffleAppInner() {
             ) : (
               React.createElement('div', { className: 'raffle-empty-state' },
                 React.createElement('span', { className: 'empty-icon' }, '🎟️'),
-                React.createElement('h3', null, 'No Active Raffles'),
-                React.createElement('p', null, 'Be the first to create one!'),
-                isAuthorizedCreator && React.createElement('button', { 
-                  className: 'raffle-btn-create-nav',
-                  onClick: () => setActiveTab('Create'),
-                  style: { marginTop: '20px' }
-                }, 'Create Raffle')
+                React.createElement('h3', null, 'No Active Raffles')
               )
             )
           )
