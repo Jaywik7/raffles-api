@@ -435,7 +435,7 @@ function RaffleAppInner() {
   };
 
   useEffect(() => {
-    if (activeTab === 'Admin' && isAdmin) {
+    if (activeTab === 'Dashboard' && isAdmin) {
       fetchAdminStats();
     }
   }, [activeTab, isAdmin]);
@@ -457,7 +457,7 @@ function RaffleAppInner() {
       if (error) throw error;
 
       notify("Raffle deleted successfully.", 'success');
-      if (activeTab === 'Admin') fetchAdminStats();
+      if (activeTab === 'Dashboard') fetchAdminStats();
     } catch (e) {
       console.error("Delete error:", e);
       notify("Failed to delete raffle. Refreshing data...", 'error');
@@ -1473,7 +1473,7 @@ function RaffleAppInner() {
 
   const tabs = useMemo(() => {
     const baseTabs = ['Active Raffles', 'Past Raffles', 'My Activity'];
-    if (isAdmin) baseTabs.push('Admin');
+    if (isAdmin) baseTabs.push('Dashboard');
     return baseTabs;
   }, [isAdmin]);
 
@@ -1848,9 +1848,9 @@ function RaffleAppInner() {
                       onClick: () => setActiveTab('Create')
                     }, 'Create Raffle'),
                     isAdmin && React.createElement('button', { 
-                      className: `raffle-btn-admin-nav ${activeTab === 'Admin' ? 'active' : ''}`,
-                      onClick: () => setActiveTab('Admin')
-                    }, 'Admin')
+                      className: `raffle-btn-admin-nav ${activeTab === 'Dashboard' ? 'active' : ''}`,
+                      onClick: () => setActiveTab('Dashboard')
+                    }, 'Dashboard')
                   )
                 ) : (
                   React.createElement('button', { 
@@ -2073,9 +2073,9 @@ function RaffleAppInner() {
               )
             )
           )
-        ) : activeTab === 'Admin' && isAdmin ? (
+        ) : activeTab === 'Dashboard' && isAdmin ? (
           React.createElement('div', { className: 'raffle-active-list' },
-            React.createElement('h2', { className: 'section-title' }, 'Admin Dashboard'),
+            React.createElement('h2', { className: 'section-title' }, 'Dashboard'),
             isLoadingAdminStats ? (
               React.createElement('div', { className: 'raffle-empty-state' },
                 React.createElement('div', { className: 'raffle-spinner', style: { width: '40px', height: '40px', marginBottom: '20px' } }),
