@@ -639,7 +639,8 @@ function RaffleAppInner() {
     try {
       const { data, error } = await supabase
         .from('entries')
-        .select('wallet_address, quantity, raffles(name)')
+        .select('wallet_address, quantity, raffles!inner(name, status)')
+        .eq('raffles.status', 'active')
         .order('created_at', { ascending: false })
         .limit(10);
 
