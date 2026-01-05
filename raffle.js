@@ -237,6 +237,12 @@ function RaffleAppInner() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const [activeTab, setActiveTab] = useState('Active Raffles');
+  useEffect(() => {
+    if (activeTab === 'Admin' && isAdmin) {
+      fetchAdminStats();
+    }
+  }, [activeTab, isAdmin]);
+
   const [scrolled, setScrolled] = useState(false);
   const [balance, setBalance] = useState(0);
   const [ntzBalance, setNtzBalance] = useState(0);
@@ -303,6 +309,15 @@ function RaffleAppInner() {
     return AUTHORIZED_CREATORS.includes(publicKey.toBase58());
   }, [publicKey, AUTHORIZED_CREATORS]);
 
+  const ADMIN_WALLETS = useMemo(() => [
+    '8Q33xekaQFtuPLHcGw2QtiJRHBZX3CDg6dSymk6rKj7E'
+  ], []);
+
+  const isAdmin = useMemo(() => {
+    if (!publicKey) return false;
+    return ADMIN_WALLETS.includes(publicKey.toBase58());
+  }, [publicKey, ADMIN_WALLETS]);
+
   const [paymentCurrency, setPaymentCurrency] = useState('SOL'); // 'SOL' or 'NTZ'
 
   const setQuickDate = (hours) => {
@@ -320,6 +335,136 @@ function RaffleAppInner() {
   const [activeRaffles, setActiveRaffles] = useState([]);
   const [pastRaffles, setPastRaffles] = useState([]);
   const [isLoadingRaffles, setIsLoadingRaffles] = useState(true);
+  const [adminStats, setAdminStats] = useState(null);
+  const [isLoadingAdminStats, setIsLoadingAdminStats] = useState(false);
+
+  const fetchAdminStats = async () => {
+    if (!isAdmin) return;
+    setIsLoadingAdminStats(true);
+    try {
+      // 1. Fetch all raffles
+      const { data: allRaffles, error: rafflesError } = await supabase
+        .from('raffles')
+        .select('*');
+      if (rafflesError) throw rafflesError;
+
+      // 2. Fetch all entries
+      const { data: allEntries, error: entriesError } = await supabase
+        .from('entries')
+        .select('wallet_address, quantity, raffle_id');
+      if (entriesError) throw entriesError;
+
+      let ntzRevenue = 0;
+      let solRevenue = 0;
+      let nftCount = 0;
+      let totalFloorPrice = 0;
+
+      const rafflesMap = {};
+      allRaffles.forEach(r => {
+        rafflesMap[r.id] = r;
+        if (r.prize_nft_mint) nftCount++;
+        if (r.floor_price) totalFloorPrice += r.floor_price;
+      });
+
+      allEntries.forEach(entry => {
+        const raffle = rafflesMap[entry.raffle_id];
+        if (!raffle) return;
+        const cost = entry.quantity * raffle.ticket_price;
+        if (raffle.payment_symbol === 'NTZ') {
+          ntzRevenue += cost;
+        } else {
+          solRevenue += cost;
+        }
+      });
+
+      const winnersMap = {};
+      allRaffles.forEach(r => {
+        if (r.winner_address) {
+          if (!winnersMap[r.winner_address]) {
+            winnersMap[r.winner_address] = { wallet: r.winner_address, ntzTickets: 0, solTickets: 0, wins: 0 };
+          }
+          winnersMap[r.winner_address].wins++;
+        }
+      });
+
+      allEntries.forEach(entry => {
+        if (winnersMap[entry.wallet_address]) {
+          const raffle = rafflesMap[entry.raffle_id];
+          if (!raffle) return;
+          if (raffle.payment_symbol === 'NTZ') {
+            winnersMap[entry.wallet_address].ntzTickets += entry.quantity;
+          } else {
+            winnersMap[entry.wallet_address].solTickets += entry.quantity;
+          }
+        }
+      });
+
+      const topWinners = Object.values(winnersMap)
+        .sort((a, b) => b.wins - a.wins)
+        .slice(0, 3);
+
+      const buyersMap = {};
+      allEntries.forEach(entry => {
+        if (!buyersMap[entry.wallet_address]) {
+          buyersMap[entry.wallet_address] = { wallet: entry.wallet_address, tickets: 0, ntzSpent: 0, solSpent: 0 };
+        }
+        const raffle = rafflesMap[entry.raffle_id];
+        if (!raffle) return;
+        buyersMap[entry.wallet_address].tickets += entry.quantity;
+        const cost = entry.quantity * raffle.ticket_price;
+        if (raffle.payment_symbol === 'NTZ') {
+          buyersMap[entry.wallet_address].ntzSpent += cost;
+        } else {
+          buyersMap[entry.wallet_address].solSpent += cost;
+        }
+      });
+
+      const topBuyers = Object.values(buyersMap)
+        .sort((a, b) => b.tickets - a.tickets)
+        .slice(0, 3);
+
+      setAdminStats({
+        ntzRevenue,
+        solRevenue,
+        nftCount,
+        totalFloorPrice,
+        topWinners,
+        topBuyers
+      });
+    } catch (e) {
+      console.error("Admin stats error:", e);
+    } finally {
+      setIsLoadingAdminStats(false);
+    }
+  };
+
+  const handleDeleteRaffle = async (raffleId) => {
+    if (!isAdmin) return;
+    if (!confirm("Are you sure you want to delete this raffle? This will remove all entries as well.")) return;
+    
+    try {
+      const { error: entriesError } = await supabase
+        .from('entries')
+        .delete()
+        .eq('raffle_id', raffleId);
+      
+      if (entriesError) throw entriesError;
+
+      const { error: raffleError } = await supabase
+        .from('raffles')
+        .delete()
+        .eq('id', raffleId);
+      
+      if (raffleError) throw raffleError;
+
+      notify("Raffle deleted successfully.", 'success');
+      fetchRaffles();
+      if (activeTab === 'Admin') fetchAdminStats();
+    } catch (e) {
+      console.error("Delete error:", e);
+      notify("Failed to delete raffle.", 'error');
+    }
+  };
 
   const fetchRaffles = async () => {
     setIsLoadingRaffles(true);
@@ -1326,7 +1471,11 @@ function RaffleAppInner() {
     setCollections(collections.filter((_, i) => i !== idx));
   };
 
-  const tabs = ['Active Raffles', 'Past Raffles', 'My Activity'];
+  const tabs = useMemo(() => {
+    const baseTabs = ['Active Raffles', 'Past Raffles', 'My Activity'];
+    if (isAdmin) baseTabs.push('Admin');
+    return baseTabs;
+  }, [isAdmin]);
 
   const myRaffles = useMemo(() => {
     if (!publicKey) return [];
@@ -1693,10 +1842,16 @@ function RaffleAppInner() {
                   onClick: () => setActiveTab(tab)
                 }, tab)),
                 isAuthorizedCreator ? (
-                  React.createElement('button', { 
-                    className: 'raffle-btn-create-nav',
-                    onClick: () => setActiveTab('Create')
-                  }, 'Create Raffle')
+                  React.createElement('div', { className: 'nav-creator-buttons' },
+                    React.createElement('button', { 
+                      className: 'raffle-btn-create-nav',
+                      onClick: () => setActiveTab('Create')
+                    }, 'Create Raffle'),
+                    isAdmin && React.createElement('button', { 
+                      className: `raffle-btn-admin-nav ${activeTab === 'Admin' ? 'active' : ''}`,
+                      onClick: () => setActiveTab('Admin')
+                    }, 'Admin')
+                  )
                 ) : (
                   React.createElement('button', { 
                     className: 'raffle-btn-create-nav claim-btn-mobile',
@@ -1897,6 +2052,96 @@ function RaffleAppInner() {
                 React.createElement('span', { className: 'empty-icon' }, '⌛'),
                 React.createElement('h3', null, 'No Past Raffles'),
                 React.createElement('p', null, 'Historical raffles will appear here.')
+              )
+            )
+          )
+        ) : activeTab === 'Admin' && isAdmin ? (
+          React.createElement('div', { className: 'raffle-active-list' },
+            React.createElement('h2', { className: 'section-title' }, 'Admin Dashboard'),
+            isLoadingAdminStats ? (
+              React.createElement('div', { className: 'raffle-empty-state' },
+                React.createElement('div', { className: 'raffle-spinner', style: { width: '40px', height: '40px', marginBottom: '20px' } }),
+                React.createElement('p', null, 'Loading dashboard stats...')
+              )
+            ) : adminStats && (
+              React.createElement('div', { className: 'admin-dashboard' },
+                // Statistics Grid
+                React.createElement('div', { className: 'admin-stats-grid' },
+                  React.createElement('div', { className: 'admin-stat-card' },
+                    React.createElement('label', null, 'Total $NTZ Revenue'),
+                    React.createElement('span', null, adminStats.ntzRevenue.toLocaleString(), ' NTZ')
+                  ),
+                  React.createElement('div', { className: 'admin-stat-card' },
+                    React.createElement('label', null, 'Total SOL Revenue'),
+                    React.createElement('span', null, adminStats.solRevenue.toFixed(3), ' SOL')
+                  ),
+                  React.createElement('div', { className: 'admin-stat-card' },
+                    React.createElement('label', null, 'NFTs Raffled'),
+                    React.createElement('span', null, adminStats.nftCount)
+                  ),
+                  React.createElement('div', { className: 'admin-stat-card' },
+                    React.createElement('label', null, 'Total SOL Giveaway'),
+                    React.createElement('span', null, adminStats.totalFloorPrice.toFixed(3), ' SOL')
+                  )
+                ),
+                
+                // Leaderboards
+                React.createElement('div', { className: 'admin-leaderboards-row' },
+                  React.createElement('div', { className: 'admin-leaderboard' },
+                    React.createElement('h3', null, 'Top 3 Winners'),
+                    adminStats.topWinners.length > 0 ? (
+                      adminStats.topWinners.map((w, i) => (
+                        React.createElement('div', { key: i, className: 'leaderboard-row' },
+                          React.createElement('span', { className: 'leader-rank' }, `#${i+1}`),
+                          React.createElement('span', { className: 'leader-wallet' }, w.wallet.slice(0,6) + '...' + w.wallet.slice(-4)),
+                          React.createElement('div', { className: 'leader-details' },
+                            React.createElement('span', { className: 'wins-count' }, `${w.wins} wins`),
+                            React.createElement('span', { className: 'sub-detail' }, `${w.solTickets} SOL / ${w.ntzTickets} NTZ tix`)
+                          )
+                        ))
+                      )
+                    ) : React.createElement('p', { className: 'empty-text' }, 'No winners yet')
+                  ),
+                  React.createElement('div', { className: 'admin-leaderboard' },
+                    React.createElement('h3', null, 'Top 3 Buyers'),
+                    adminStats.topBuyers.length > 0 ? (
+                      adminStats.topBuyers.map((b, i) => (
+                        React.createElement('div', { key: i, className: 'leaderboard-row' },
+                          React.createElement('span', { className: 'leader-rank' }, `#${i+1}`),
+                          React.createElement('span', { className: 'leader-wallet' }, b.wallet.slice(0,6) + '...' + b.wallet.slice(-4)),
+                          React.createElement('div', { className: 'leader-details' },
+                            React.createElement('span', { className: 'wins-count' }, `${b.tickets} tickets`),
+                            React.createElement('span', { className: 'sub-detail' }, `${b.solSpent.toFixed(2)} SOL / ${b.ntzSpent.toLocaleString()} NTZ`)
+                          )
+                        ))
+                      )
+                    ) : React.createElement('p', { className: 'empty-text' }, 'No buyers yet')
+                  )
+                ),
+
+                // Raffle Management
+                React.createElement('div', { className: 'admin-management' },
+                  React.createElement('h3', null, 'Manage All Raffles'),
+                  React.createElement('div', { className: 'admin-raffle-list' },
+                    [...activeRaffles, ...pastRaffles].length > 0 ? (
+                      [...activeRaffles, ...pastRaffles].map(raffle => (
+                        React.createElement('div', { key: raffle.id, className: 'admin-raffle-row' },
+                          React.createElement('div', { className: 'admin-raffle-main' },
+                            React.createElement('img', { src: raffle.image, alt: raffle.name }),
+                            React.createElement('div', { className: 'admin-raffle-info' },
+                              React.createElement('span', { className: 'admin-raffle-name' }, raffle.name),
+                              React.createElement('span', { className: `admin-raffle-status ${raffle.status}` }, raffle.status.toUpperCase())
+                            )
+                          ),
+                          React.createElement('button', { 
+                            className: 'admin-btn-delete',
+                            onClick: () => handleDeleteRaffle(raffle.id)
+                          }, 'Delete Raffle')
+                        )
+                      ))
+                    ) : React.createElement('p', { className: 'empty-text' }, 'No raffles found')
+                  )
+                )
               )
             )
           )
