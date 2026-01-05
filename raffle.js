@@ -532,72 +532,95 @@ function RaffleAppInner() {
       const rpcUrl = connection.rpcEndpoint;
       console.log("Using RPC URL:", rpcUrl);
       
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 'my-id',
-          method: 'getAssetsByOwner',
-          params: {
-            ownerAddress: publicKey.toBase58(),
-            page: 1,
-            limit: 1000,
-            displayOptions: { 
-              showCollectionMetadata: true,
-              showFungible: true,
-              showNativeBalance: true
+      let allItems = [];
+      let page = 1;
+      let hasMore = true;
+      const limit = 1000;
+
+      while (hasMore) {
+        console.log(`Fetching NFT page ${page}...`);
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'my-id',
+            method: 'getAssetsByOwner',
+            params: {
+              ownerAddress: publicKey.toBase58(),
+              page: page,
+              limit: limit,
+              displayOptions: { 
+                showCollectionMetadata: true,
+                showFungible: true,
+                showNativeBalance: true
+              },
             },
-          },
-        }),
-      });
+          }),
+        });
 
-      const data = await response.json();
-      console.log("DAS Response:", data);
-      
-      if (data.error) throw new Error(data.error.message || "RPC Error");
-      
-      const result = data.result;
-      if (!result || !result.items) throw new Error("Invalid DAS response structure");
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message || "RPC Error");
+        
+        const result = data.result;
+        if (!result || !result.items) break;
 
-      let items = result.items;
-      
-      const nfts = items.filter(asset => {
+        allItems = [...allItems, ...result.items];
+        console.log(`Page ${page} fetched ${result.items.length} items. Total: ${allItems.length}`);
+        
+        if (result.items.length < limit) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+        
+        // Safety break for extremely large wallets to prevent timeouts
+        if (page > 50) {
+          console.warn("Reached max NFT fetch pages (50). Some NFTs might be missing.");
+          hasMore = false;
+        }
+      }
+
+      const nfts = allItems.filter(asset => {
         // Exclude burnt or deleted assets
         if (asset.burnt || asset.deleted) return false;
 
         const tokenInfo = asset.token_info || {};
-        const interface_type = asset.interface;
+        const interface_type = (asset.interface || '').toUpperCase();
         
         // 1. Decimals check (MOST RELIABLE for SPL-based NFTs)
         // If decimals are 0, it's an NFT or SFT (Collectible)
         if (tokenInfo.decimals === 0) return true;
         
-        // 2. Interface check
-        // These are interfaces for NFTs/Collectibles
+        // 2. Interface check (Case-insensitive)
         const nftInterfaces = [
           'V1_NFT', 
           'V2_NFT', 
           'COMPRESSED_NFT', 
-          'ProgrammableNFT', 
-          'Custom', 
-          'LegacyNFT', 
-          'MplCoreAsset', 
-          'MplCoreCollection',
+          'PROGRAMMABLENFT', 
+          'CUSTOM', 
+          'LEGACYNFT', 
+          'MPLCOREASSET', 
+          'MPLCORECOLLECTION',
           'V1_PRINT_EDITION',
           'V2_PRINT_EDITION',
           'V1_COLLECTION',
-          'Collection'
+          'COLLECTION',
+          'NFTPRINT',
+          'FUNGIBLEASSET' // Often used for SFTs (collectibles with > 1 supply but 0 decimals)
         ];
-        if (nftInterfaces.includes(interface_type)) return true;
+        if (nftInterfaces.includes(interface_type)) {
+            // For FUNGIBLEASSET, we still want 0 decimals usually
+            if (interface_type === 'FUNGIBLEASSET' && tokenInfo.decimals > 0) return false;
+            return true;
+        }
         
         // 3. Asset Type check (DAS specific)
-        if (asset.content?.metadata?.token_standard === 'NonFungible' || 
-            asset.content?.metadata?.token_standard === 'NonFungibleEdition') return true;
+        const tokenStandard = (asset.content?.metadata?.token_standard || '').toUpperCase();
+        if (tokenStandard.includes('NONFUNGIBLE')) return true;
 
-        // 4. Special cases for FungibleAsset (SFTs)
-        // If it's a FungibleAsset and decimals are missing/0, it's likely a collectible
-        if (interface_type === 'FungibleAsset' && (!tokenInfo.decimals || tokenInfo.decimals === 0)) return true;
+        // 4. Special cases for missing decimals but NFT-like interface
+        if (!tokenInfo.decimals && (interface_type.includes('NFT') || interface_type.includes('ASSET'))) return true;
         
         return false;
       }).map(asset => {
