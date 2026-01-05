@@ -1850,7 +1850,7 @@ function RaffleAppInner() {
                     isAdmin && React.createElement('button', { 
                       className: `raffle-btn-admin-nav ${activeTab === 'Dashboard' ? 'active' : ''}`,
                       onClick: () => setActiveTab('Dashboard')
-                    }, 'Dashboard')
+                    }, 'Admin')
                   )
                 ) : (
                   React.createElement('button', { 
