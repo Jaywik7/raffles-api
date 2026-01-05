@@ -2344,12 +2344,13 @@
 
 /* Admin Delete Button */
 .admin-quick-delete-btn {
-  background: rgba(255, 77, 77, 0.8) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #ff4d4d !important;
+  border: 1px solid rgba(255, 77, 77, 0.3) !important;
 }
 
 .admin-quick-delete-btn:hover {
-  background: #ff4d4d !important;
+  background: #ffffff !important;
   transform: scale(1.1) !important;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
 }
