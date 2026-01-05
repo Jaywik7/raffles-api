@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
           // Send Discord Webhook
           const MICROS_COLORS = [0xFFC0F5, 0x00E3FA, 0x5CFCA9, 0xFFD55F, 0xFF9161];
-          const WEBHOOK_URL = 'https://discord.com/api/webhooks/1446887414910943242/KeOlEdoTT_pibsQ7Q4Hl5DMESD7PV6N-ZQMVet6A9vV8gUWqLvCSWHZzZyUmko68oR1W';
+          const WEBHOOK_URL = 'https://discord.com/api/webhooks/1457643982128414866/ZtE3ttyO8Nv3AgfjWfe4Mg47rb8E0gP1ezsrOgF4sYmcmo71VENoSmBB6VppV7EJtsb7';
           const SITE_URL = "https://raffles.microsnft.xyz";
 
           const embed = {
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
             color: MICROS_COLORS[2], // Green
             timestamp: new Date().toISOString(),
             footer: { text: "Micros Raffles", icon_url: "https://raffles.microsnft.xyz/assets/micros.png" },
-            thumbnail: { url: fullRaffle.image_url },
+            image: { url: fullRaffle.image_url },
             fields: [
               { name: "👑 Winner", value: `[${winner.slice(0, 8)}...${winner.slice(-8)}](https://solscan.io/account/${winner})`, inline: false },
               { name: "👥 Participants", value: `${participantCount || 0}`, inline: true },
