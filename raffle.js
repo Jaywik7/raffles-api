@@ -305,7 +305,8 @@ function RaffleAppInner() {
   }, [publicKey, AUTHORIZED_CREATORS]);
 
   const ADMIN_WALLETS = useMemo(() => [
-    '8Q33xekaQFtuPLHcGw2QtiJRHBZX3CDg6dSymk6rKj7E'
+    '8Q33xekaQFtuPLHcGw2QtiJRHBZX3CDg6dSymk6rKj7E',
+    '4Dqhw8LpjGYLndocdQENDg7KRr1MdYdvB6KWTbLjK6Jg'
   ], []);
 
   const isAdmin = useMemo(() => {
