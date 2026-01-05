@@ -335,7 +335,38 @@ function RaffleAppInner() {
         console.log(`Found ${expiredRaffles.length} expired raffles. Drawing winners...`);
         for (const r of expiredRaffles) {
           // Call our SQL function to pick a winner
-          await supabase.rpc('pick_raffle_winner', { target_raffle_id: r.id });
+          const { data: winnerAddress } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: r.id });
+          
+          if (winnerAddress) {
+            // Fetch full raffle data and entry count for Discord
+            const { data: fullRaffle } = await supabase
+              .from('raffles')
+              .select('*')
+              .eq('id', r.id)
+              .single();
+
+            const { count: participantCount } = await supabase
+              .from('entries')
+              .select('*', { count: 'exact', head: true })
+              .eq('raffle_id', r.id);
+
+            if (fullRaffle) {
+              sendDiscordWebhook('END', {
+                ...fullRaffle,
+                name: fullRaffle.name,
+                image: fullRaffle.image_url,
+                sold: fullRaffle.ticket_sold,
+                supply: fullRaffle.ticket_supply,
+                tokenPrize: fullRaffle.prize_token_mint ? {
+                  amount: fullRaffle.prize_token_amount,
+                  symbol: fullRaffle.prize_token_symbol
+                } : null
+              }, { 
+                winner: winnerAddress, 
+                participantCount: participantCount || 0 
+              });
+            }
+          }
         }
       }
 
@@ -861,6 +892,59 @@ function RaffleAppInner() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const MICROS_COLORS = [0xFFC0F5, 0x00E3FA, 0x5CFCA9, 0xFFD55F, 0xFF9161];
+  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1446887414910943242/KeOlEdoTT_pibsQ7Q4Hl5DMESD7PV6N-ZQMVet6A9vV8gUWqLvCSWHZzZyUmko68oR1W';
+
+  const sendDiscordWebhook = async (type, raffle, extraData = {}) => {
+    try {
+      const SITE_URL = "https://raffles.microsnft.xyz";
+      let embed = {
+        timestamp: new Date().toISOString(),
+        footer: { text: "Micros Raffles", icon_url: "https://raffles.microsnft.xyz/assets/micros.png" },
+        thumbnail: { url: raffle.image_url || raffle.image }
+      };
+
+      if (type === 'CREATE') {
+        embed.title = `🎟️ NEW RAFFLE: ${raffle.name}`;
+        embed.url = SITE_URL;
+        embed.color = MICROS_COLORS[0]; // Pink
+        
+        const bonusText = raffle.prize_token_mint ? `\n**🎁 Bonus Prize:** ${raffle.prize_token_amount.toLocaleString()} ${raffle.prize_token_symbol}` : "";
+        
+        embed.fields = [
+          { name: "💰 Ticket Price", value: `${raffle.ticket_price || raffle.price} ${raffle.payment_symbol || 'SOL'}`, inline: true },
+          { name: "🎫 Total Supply", value: `${raffle.ticket_supply || raffle.supply} Tickets`, inline: true },
+          { name: "🚫 Limit Per Wallet", value: `${raffle.limit_per_wallet || raffle.limitPerWallet || 'No limit'}`, inline: true },
+          { name: "🏆 Prizes", value: `• ${raffle.name}${bonusText}`, inline: false }
+        ];
+      } 
+      else if (type === 'END') {
+        embed.title = `🏁 RAFFLE ENDED: ${raffle.name}`;
+        embed.url = SITE_URL;
+        embed.color = MICROS_COLORS[2]; // Green
+        
+        const winner = extraData.winner || 'Unknown';
+        const participantCount = extraData.participantCount || 0;
+        
+        embed.fields = [
+          { name: "👑 Winner", value: `[${winner.slice(0, 8)}...${winner.slice(-8)}](https://solscan.io/account/${winner})`, inline: false },
+          { name: "👥 Participants", value: `${participantCount}`, inline: true },
+          { name: "🎫 Tickets Sold", value: `${raffle.sold}/${raffle.supply}`, inline: true },
+          { name: "🎁 Prize Info", value: `• ${raffle.name}${raffle.tokenPrize ? `\n• ${raffle.tokenPrize.amount.toLocaleString()} ${raffle.tokenPrize.symbol}` : ''}`, inline: false }
+        ];
+      }
+
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embeds: [embed] })
+      });
+      console.log(`Discord ${type} webhook sent!`);
+    } catch (err) {
+      console.error("Discord Webhook Error:", err);
+    }
+  };
+
   const handleCreateRaffle = async () => {
     if (!publicKey) {
       notify('Please connect your wallet first!', 'error');
@@ -951,8 +1035,12 @@ function RaffleAppInner() {
 
       if (dbError) throw dbError;
 
-      // Update local state
       const dbRaffle = newRaffleData[0];
+
+      // Send Discord Notification
+      sendDiscordWebhook('CREATE', dbRaffle);
+
+      // Update local state
       const newRaffle = {
         id: dbRaffle.id,
         name: dbRaffle.name,
@@ -1204,9 +1292,21 @@ function RaffleAppInner() {
 
     notify('Ending raffle and picking winner... 🎲', 'info', true);
     try {
-      const { error } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: raffle.id });
+      const { data: winnerAddress, error } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: raffle.id });
       if (error) throw error;
       
+      // Fetch participant count for Discord notification
+      const { count: participantCount } = await supabase
+        .from('entries')
+        .select('*', { count: 'exact', head: true })
+        .eq('raffle_id', raffle.id);
+
+      // Send Discord Notification
+      sendDiscordWebhook('END', raffle, { 
+        winner: winnerAddress, 
+        participantCount: participantCount || 0 
+      });
+
       notify('Winner picked successfully! 🎊', 'success');
       fetchRaffles(); // Refresh list to reflect ended status
     } catch (e) {
