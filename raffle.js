@@ -1397,15 +1397,19 @@ function RaffleAppInner() {
                   ),
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Time Left'),
-                    React.createElement(CountdownTimer, { 
-                      endsAt: selectedRaffleDetails.endsAt,
-                      onEnd: () => {
-                        setTimeout(() => {
-                          setSelectedRaffleDetails(null);
-                          fetchRaffles();
-                        }, 2000);
-                      }
-                    })
+                    selectedRaffleDetails.status === 'ended' ? (
+                      React.createElement('span', { style: { color: '#ff4d4d', fontWeight: '800' } }, 'ENDED')
+                    ) : (
+                      React.createElement(CountdownTimer, { 
+                        endsAt: selectedRaffleDetails.endsAt,
+                        onEnd: () => {
+                          setTimeout(() => {
+                            setSelectedRaffleDetails(null);
+                            fetchRaffles();
+                          }, 2000);
+                        }
+                      })
+                    )
                   ),
                   React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Limit Per Wallet'),
@@ -1426,35 +1430,54 @@ function RaffleAppInner() {
                     selectedRaffleDetails.tokenPrize && React.createElement('div', { className: 'prize-bullet' }, `• ${selectedRaffleDetails.tokenPrize.amount.toLocaleString()} ${selectedRaffleDetails.tokenPrize.symbol}`)
                   ),
                   React.createElement('div', { className: 'detail-actions' },
-                    React.createElement('div', { className: 'raffle-buy-row detail-buy-row' },
-                      React.createElement('div', { className: 'raffle-quantity-selector' },
-                        React.createElement('button', { 
-                          onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, (prev[selectedRaffleDetails.id] || 1) - 1) }))
-                        }, '-'),
-                        React.createElement('input', { 
-                          type: 'number', 
-                          value: buyQuantities[selectedRaffleDetails.id] || 1,
-                          onChange: (e) => {
-                            const val = parseInt(e.target.value) || 1;
-                            setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, val) }));
-                          }
-                        }),
-                        React.createElement('button', { 
-                          onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: (prev[selectedRaffleDetails.id] || 1) + 1 }))
-                        }, '+')
-                      ),
-                      (() => {
-                        const isSoldOut = selectedRaffleDetails.sold >= selectedRaffleDetails.supply;
-                        return React.createElement('button', { 
-                          className: `raffle-btn-buy large ${isSoldOut ? 'sold-out' : ''}`,
-                          onClick: () => { 
-                            if (isSoldOut) return;
-                            handleBuyTicket(selectedRaffleDetails); 
-                            setSelectedRaffleDetails(null); 
-                          },
-                          disabled: isBuying || isSoldOut
-                        }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : (isSoldOut ? 'Sold Out' : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`));
-                      })()
+                    selectedRaffleDetails.status === 'ended' ? (
+                      React.createElement('div', { className: 'raffle-winner-display' },
+                        React.createElement('div', { className: 'winner-label' }, 'WINNER'),
+                        selectedRaffleDetails.winner ? (
+                          React.createElement('a', {
+                            href: `https://solscan.io/account/${selectedRaffleDetails.winner}`,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            className: 'winner-link-large'
+                          }, 
+                            React.createElement('span', null, '👑'),
+                            selectedRaffleDetails.winner.slice(0, 8) + '...' + selectedRaffleDetails.winner.slice(-8)
+                          )
+                        ) : (
+                          React.createElement('span', { className: 'picking-winner' }, 'Picking winner...')
+                        )
+                      )
+                    ) : (
+                      React.createElement('div', { className: 'raffle-buy-row detail-buy-row' },
+                        React.createElement('div', { className: 'raffle-quantity-selector' },
+                          React.createElement('button', { 
+                            onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, (prev[selectedRaffleDetails.id] || 1) - 1) }))
+                          }, '-'),
+                          React.createElement('input', { 
+                            type: 'number', 
+                            value: buyQuantities[selectedRaffleDetails.id] || 1,
+                            onChange: (e) => {
+                              const val = parseInt(e.target.value) || 1;
+                              setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: Math.max(1, val) }));
+                            }
+                          }),
+                          React.createElement('button', { 
+                            onClick: () => setBuyQuantities(prev => ({ ...prev, [selectedRaffleDetails.id]: (prev[selectedRaffleDetails.id] || 1) + 1 }))
+                          }, '+')
+                        ),
+                        (() => {
+                          const isSoldOut = selectedRaffleDetails.sold >= selectedRaffleDetails.supply;
+                          return React.createElement('button', { 
+                            className: `raffle-btn-buy large ${isSoldOut ? 'sold-out' : ''}`,
+                            onClick: () => { 
+                              if (isSoldOut) return;
+                              handleBuyTicket(selectedRaffleDetails); 
+                              setSelectedRaffleDetails(null); 
+                            },
+                            disabled: isBuying || isSoldOut
+                          }, isBuying ? React.createElement('div', { className: 'raffle-spinner' }) : (isSoldOut ? 'Sold Out' : `Buy ${buyQuantities[selectedRaffleDetails.id] || 1} Ticket${(buyQuantities[selectedRaffleDetails.id] || 1) > 1 ? 's' : ''} Now`));
+                        })()
+                      )
                     )
                   )
                 )
@@ -1469,7 +1492,14 @@ function RaffleAppInner() {
                   participants.map((p, index) => (
                     React.createElement('div', { key: index, className: 'leaderboard-row' },
                       React.createElement('span', { className: 'leader-rank' }, `#${index + 1}`),
-                      React.createElement('span', { className: 'leader-wallet' }, p.wallet.slice(0, 6) + '...' + p.wallet.slice(-4)),
+                      React.createElement('span', { className: 'leader-wallet' }, 
+                        p.wallet.slice(0, 6) + '...' + p.wallet.slice(-4),
+                        selectedRaffleDetails.winner === p.wallet && React.createElement('span', { 
+                          className: 'winner-crown-emoji',
+                          title: 'Winner',
+                          style: { marginLeft: '8px', fontSize: '16px' }
+                        }, '👑')
+                      ),
                       React.createElement('span', { className: 'leader-tickets' }, `${p.tickets} tickets`)
                     ))
                   )
@@ -1735,7 +1765,11 @@ function RaffleAppInner() {
             pastRaffles.length > 0 ? (
               React.createElement('div', { className: 'raffle-card-grid' },
                 pastRaffles.map(raffle => (
-                  React.createElement('div', { key: raffle.id, className: 'raffle-item-card past' },
+                  React.createElement('div', { 
+                    key: raffle.id, 
+                    className: 'raffle-item-card past',
+                    onClick: () => setSelectedRaffleDetails(raffle)
+                  },
                     React.createElement('div', { className: 'raffle-item-image' },
                       React.createElement('img', { src: raffle.image, alt: raffle.name })
                     ),

@@ -2074,3 +2074,56 @@
     font-size: 20px !important;
   }
 }
+
+/* Past Raffle Modal Styles */
+.raffle-winner-display {
+  background: rgba(92, 252, 169, 0.1);
+  border: 1px solid rgba(92, 252, 169, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.raffle-winner-display .winner-label {
+  color: #5CFCA9;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  display: block;
+  opacity: 1;
+}
+
+.winner-link-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 800;
+  font-family: monospace;
+  transition: transform 0.2s;
+}
+
+.winner-link-large:hover {
+  transform: scale(1.02);
+  text-decoration: underline;
+}
+
+.winner-link-large span {
+  font-size: 24px;
+}
+
+.picking-winner {
+  color: #B19EEF;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.winner-crown-emoji {
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+  cursor: help;
+}
