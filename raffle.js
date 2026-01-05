@@ -237,11 +237,6 @@ function RaffleAppInner() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const [activeTab, setActiveTab] = useState('Active Raffles');
-  useEffect(() => {
-    if (activeTab === 'Admin' && isAdmin) {
-      fetchAdminStats();
-    }
-  }, [activeTab, isAdmin]);
 
   const [scrolled, setScrolled] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -437,6 +432,12 @@ function RaffleAppInner() {
       setIsLoadingAdminStats(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'Admin' && isAdmin) {
+      fetchAdminStats();
+    }
+  }, [activeTab, isAdmin]);
 
   const handleDeleteRaffle = async (raffleId) => {
     if (!isAdmin) return;
