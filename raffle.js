@@ -662,7 +662,10 @@ function RaffleAppInner() {
     if (publicKey) {
       fetchUserEntries();
     }
-    const interval = setInterval(fetchLiveActivity, 30000); // Update every 30s
+    const interval = setInterval(() => {
+      fetchLiveActivity();
+      fetchRaffles(); // Also refresh raffles to get latest sold counts
+    }, 30000); 
     return () => clearInterval(interval);
   }, [publicKey]);
 
@@ -1256,10 +1259,32 @@ function RaffleAppInner() {
 
     const quantity = buyQuantities[raffle.id] || 1;
 
+    // --- RE-FETCH LATEST DATA TO PREVENT OVERSELLING ---
+    try {
+      const { data: latestRaffle, error: fetchError } = await supabase
+        .from('raffles')
+        .select('sold, supply, limitPerWallet')
+        .eq('id', raffle.id)
+        .single();
+      
+      if (!fetchError && latestRaffle) {
+        // Update local state with latest data for this specific check
+        raffle.sold = latestRaffle.sold;
+        raffle.supply = latestRaffle.supply;
+        raffle.limitPerWallet = latestRaffle.limitPerWallet;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch latest raffle data, proceeding with local state:", err);
+    }
+
     // 1. Check Total Ticket Supply
     const remainingSupply = raffle.supply - raffle.sold;
     if (quantity > remainingSupply) {
-      notify(`Not enough tickets left! Only ${remainingSupply} remaining.`, 'error');
+      notify(remainingSupply <= 0 ? 'This raffle is sold out!' : `Not enough tickets left! Only ${remainingSupply} remaining.`, 'error');
+      // Update local state to show it's sold out
+      if (remainingSupply <= 0) {
+        setActiveRaffles(prev => prev.map(r => r.id === raffle.id ? { ...r, sold: r.supply } : r));
+      }
       return;
     }
 
@@ -1388,12 +1413,36 @@ function RaffleAppInner() {
       await connection.confirmTransaction(signature, 'processed');
 
       // Update Supabase using atomic increment
-      const { error: dbError } = await supabase.rpc('increment_ticket_sold', { 
+      const { data: updatedSold, error: dbError } = await supabase.rpc('increment_ticket_sold', { 
         target_raffle_id: raffle.id, 
         quantity_to_add: quantity 
       });
 
       if (dbError) throw dbError;
+
+      // --- AUTO-END RAFFLE IF SOLD OUT ---
+      // We check if it's sold out after the increment. If so, we set status to 'ended'
+      // and trigger the winner drawing.
+      try {
+        const { data: latestRaffle } = await supabase
+          .from('raffles')
+          .select('ticket_sold, ticket_supply, status')
+          .eq('id', raffle.id)
+          .single();
+
+        if (latestRaffle && latestRaffle.ticket_sold >= latestRaffle.ticket_supply && latestRaffle.status === 'active') {
+          console.log("Raffle sold out! Ending automatically...");
+          await supabase
+            .from('raffles')
+            .update({ status: 'ended' })
+            .eq('id', raffle.id);
+          
+          // Trigger winner drawing
+          await supabase.rpc('pick_raffle_winner', { target_raffle_id: raffle.id });
+        }
+      } catch (endErr) {
+        console.warn("Failed to auto-end raffle:", endErr);
+      }
 
       // Record the Entry for the winner drawing logic
       const { error: entryError } = await supabase
