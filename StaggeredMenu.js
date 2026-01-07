@@ -9,8 +9,8 @@ export const StaggeredMenu = ({
   displaySocials = true,
   displayItemNumbering = true,
   className,
-  logoUrl = './assets/logo.webp',
-  logoOppositeUrl = './assets/logo-opposite.webp',
+  logoUrl = './assets/logo.svg',
+  logoOppositeUrl = './assets/logo-opposite.svg',
   menuButtonColor = '#fff',
   openMenuButtonColor = '#fff',
   accentColor = '#5227FF',
@@ -351,7 +351,7 @@ export const StaggeredMenu = ({
             height: 24
           }),
           React.createElement('img', {
-            src: logoOppositeUrl || './assets/logo-opposite.webp',
+            src: logoOppositeUrl || './assets/logo-opposite.svg',
             alt: 'Logo',
             className: 'sm-logo-img sm-logo-opposite',
             draggable: false,

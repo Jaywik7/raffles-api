@@ -1863,7 +1863,7 @@ function RaffleAppInner() {
       menuButtonColor: '#fff',
       openMenuButtonColor: '#fff',
       changeMenuColorOnOpen: false,
-      logoUrl: './assets/logo-opposite.webp',
+      logoUrl: './assets/logo-opposite.svg',
       accentColor: '#ff6b6b',
       isFixed: true
     }),
