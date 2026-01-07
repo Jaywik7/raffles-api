@@ -9,8 +9,8 @@ export const StaggeredMenu = ({
   displaySocials = true,
   displayItemNumbering = true,
   className,
-  logoUrl = './assets/logo.svg',
-  logoOppositeUrl = './assets/logo-opposite.svg',
+  logoUrl = './assets/logo.webp',
+  logoOppositeUrl = './assets/logo-opposite.webp',
   menuButtonColor = '#fff',
   openMenuButtonColor = '#fff',
   accentColor = '#5227FF',
@@ -351,7 +351,7 @@ export const StaggeredMenu = ({
             height: 24
           }),
           React.createElement('img', {
-            src: logoOppositeUrl || './assets/logo-opposite.svg',
+            src: logoOppositeUrl || './assets/logo-opposite.webp',
             alt: 'Logo',
             className: 'sm-logo-img sm-logo-opposite',
             draggable: false,
@@ -428,7 +428,7 @@ export const StaggeredMenu = ({
                       React.createElement('span', { className: 'sm-socials-icon', 'aria-hidden': 'true' },
                         s.label && String(s.label).toLowerCase().includes('discord')
                           ? React.createElement('img', { src: './assets/discordlogo.png', alt: '', draggable: false })
-                          : React.createElement('img', { src: './assets/xlogo.svg', alt: '', draggable: false })
+                          : React.createElement('img', { src: './assets/xlogo.webp', alt: '', draggable: false })
                       ),
                       React.createElement('span', { className: 'sr-only' }, s.label)
                     )
