@@ -1753,6 +1753,7 @@ function RaffleAppInner() {
                           }, '-'),
                           React.createElement('input', { 
                             type: 'number', 
+                            'aria-label': 'Ticket quantity',
                             value: buyQuantities[selectedRaffleDetails.id] || 1,
                             onChange: (e) => {
                               const val = parseInt(e.target.value) || 1;
@@ -1919,6 +1920,7 @@ function RaffleAppInner() {
                 React.createElement('span', { className: 'sort-label' }, 'Sort by:'),
                 React.createElement('select', { 
                   className: 'raffle-sort-select',
+                  'aria-label': 'Sort raffles',
                   value: sortBy,
                   onChange: (e) => setSortBy(e.target.value)
                 }, 
@@ -2337,6 +2339,7 @@ function RaffleAppInner() {
                       React.createElement('div', { className: 'selected-nft-info' },
                         React.createElement('input', {
                           type: 'number',
+                          'aria-label': 'Token prize amount',
                           placeholder: 'Amount',
                           className: 'token-amount-input',
                           value: tokenAmount,
@@ -2373,6 +2376,7 @@ function RaffleAppInner() {
                     React.createElement('div', { className: 'raffle-date-input' },
                       React.createElement('input', { 
                         type: 'datetime-local',
+                        'aria-label': 'Raffle end date',
                         value: endDate,
                         onChange: (e) => setEndDate(e.target.value)
                       })
@@ -2392,6 +2396,7 @@ function RaffleAppInner() {
                     ),
                     React.createElement('input', { 
                       type: 'number', 
+                      'aria-label': 'Ticket Supply',
                       className: `raffle-input-dark ${ticketSupply !== '' && parseInt(ticketSupply) < 3 ? 'input-error' : ''}`,
                       value: ticketSupply,
                       onChange: (e) => setTicketSupply(e.target.value)
@@ -2406,12 +2411,14 @@ function RaffleAppInner() {
                         type: 'number', 
                         step: '0.01',
                         min: '0',
+                        'aria-label': 'Ticket Price',
                         placeholder: '0.00',
                         value: ticketPrice,
                         onChange: (e) => setTicketPrice(e.target.value)
                       }),
                       React.createElement('select', { 
                         className: 'raffle-currency-select',
+                        'aria-label': 'Payment Currency',
                         value: paymentCurrency,
                         onChange: (e) => setPaymentCurrency(e.target.value)
                       },
@@ -2429,6 +2436,7 @@ function RaffleAppInner() {
                         type: 'number', 
                         step: '0.01',
                         min: '0',
+                        'aria-label': 'Floor Price',
                         placeholder: '0.00',
                         value: floorPrice,
                         onChange: (e) => setFloorPrice(e.target.value)
@@ -2448,6 +2456,7 @@ function RaffleAppInner() {
                           React.createElement('input', { 
                             type: 'text', 
                             className: 'advanced-input', 
+                            'aria-label': 'Collection key or creator address',
                             placeholder: 'Enter collection key or first creator address',
                             value: col,
                             onChange: (e) => handleCollectionChange(idx, e.target.value)
@@ -2469,6 +2478,7 @@ function RaffleAppInner() {
                       React.createElement('label', null, 'Ticket limit per wallet'),
                       React.createElement('input', { 
                         type: 'number', 
+                        'aria-label': 'Ticket limit per wallet',
                         className: 'advanced-input no-spinners', 
                         value: ticketLimit,
                         placeholder: '1',

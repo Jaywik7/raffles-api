@@ -400,7 +400,8 @@ export const StaggeredMenu = ({
                       'aria-label': it.ariaLabel,
                       'data-index': idx + 1,
                       'aria-disabled': isDisabled ? 'true' : undefined,
-                      onClick: handleClick
+                      onClick: handleClick,
+                      tabIndex: open ? 0 : -1
                     },
                       React.createElement('span', { className: 'sm-panel-itemLabel' }, it.label)
                     )
@@ -423,7 +424,8 @@ export const StaggeredMenu = ({
                       target: '_blank',
                       rel: 'noopener noreferrer',
                       className: 'sm-socials-link',
-                      onClick: () => closeMenu()
+                      onClick: () => closeMenu(),
+                      tabIndex: open ? 0 : -1
                     },
                       React.createElement('span', { className: 'sm-socials-icon', 'aria-hidden': 'true' },
                         s.label && String(s.label).toLowerCase().includes('discord')
