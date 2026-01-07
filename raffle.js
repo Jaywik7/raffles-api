@@ -2035,6 +2035,7 @@ function RaffleAppInner() {
                           }, '-'),
                           React.createElement('input', { 
                             type: 'number', 
+                            'aria-label': 'Ticket quantity',
                             value: buyQuantities[raffle.id] || 1,
                             onClick: (e) => e.stopPropagation(),
                             onChange: (e) => {
@@ -2511,6 +2512,7 @@ function RaffleAppInner() {
                     React.createElement('label', { className: 'raffle-checkbox-label' },
                       React.createElement('input', { 
                         type: 'checkbox',
+                        'aria-label': 'Agree to terms and conditions',
                         checked: agreeToTerms,
                         onChange: (e) => setAgreeToTerms(e.target.checked)
                       }),
