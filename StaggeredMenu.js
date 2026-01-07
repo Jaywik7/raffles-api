@@ -428,7 +428,7 @@ export const StaggeredMenu = ({
                       React.createElement('span', { className: 'sm-socials-icon', 'aria-hidden': 'true' },
                         s.label && String(s.label).toLowerCase().includes('discord')
                           ? React.createElement('img', { src: './assets/discordlogo.png', alt: '', draggable: false })
-                          : React.createElement('img', { src: './assets/xlogo.webp', alt: '', draggable: false })
+                          : React.createElement('img', { src: './assets/xlogo.svg', alt: '', draggable: false })
                       ),
                       React.createElement('span', { className: 'sr-only' }, s.label)
                     )
