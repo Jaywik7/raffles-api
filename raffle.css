@@ -1822,13 +1822,13 @@
 /* Mobile Header Optimization (iPhone/Smaller Screens) */
 @media (max-width: 640px) {
   .staggered-menu-header {
-    padding: 16px 12px !important;
+    padding: 12px 8px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
   
   .sm-logo-img {
-    height: 32px !important; /* Made bigger */
+    height: 28px !important; 
   }
 
   .sm-toggle {
@@ -1842,22 +1842,32 @@
 
   .raffle-fixed-header {
     top: 16px !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
+    right: 100px !important;
+    left: auto !important;
+    transform: none !important;
     width: auto !important;
     z-index: 60 !important;
   }
 
+  .raffle-header-actions {
+    gap: 8px !important;
+  }
+
   .raffle-header-actions button[class*="wallet-adapter-button"] {
-    min-width: 110px !important; /* Made bigger */
-    width: 110px !important; /* Made bigger */
-    height: 38px !important; /* Made bigger */
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 38px !important;
     min-height: 38px !important;
     line-height: 38px !important;
-    padding: 0 12px !important;
-    font-size: 12px !important; /* Made bigger */
-    border-radius: 50px !important;
+    padding: 0 !important;
+    font-size: 0 !important; /* Hide address text on mobile */
+    border-radius: 50% !important;
+  }
+
+  .raffle-header-actions button[class*="wallet-adapter-button"]::after {
+    content: "👛";
+    font-size: 18px;
+    display: block;
   }
 
   /* Adjust main container padding for larger header */
