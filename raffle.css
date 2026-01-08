@@ -1854,20 +1854,29 @@
   }
 
   .raffle-header-actions button[class*="wallet-adapter-button"] {
-    min-width: 44px !important;
-    width: 44px !important;
+    min-width: 70px !important;
+    width: auto !important;
     height: 38px !important;
     min-height: 38px !important;
     line-height: 38px !important;
-    padding: 0 !important;
-    font-size: 0 !important; /* Hide address text on mobile */
-    border-radius: 50% !important;
+    padding: 0 10px !important;
+    font-size: 11px !important; /* Show address text on mobile */
+    border-radius: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
   }
 
-  .raffle-header-actions button[class*="wallet-adapter-button"]::after {
-    content: "👛";
-    font-size: 18px;
+  .raffle-header-actions button[class*="wallet-adapter-button"]::before {
+    content: "💳"; /* Neutral/Men's wallet style card */
+    font-size: 16px;
     display: block;
+    margin-right: 4px;
+  }
+
+  /* Hide the default ::after emoji we added before */
+  .raffle-header-actions button[class*="wallet-adapter-button"]::after {
+    display: none !important;
   }
 
   /* Adjust main container padding for larger header */
