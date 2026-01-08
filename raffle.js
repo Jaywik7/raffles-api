@@ -243,7 +243,13 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
                     setView('main');
                   }
                 },
-                  React.createElement('img', { src: nft.image, alt: nft.name }),
+                  React.createElement('img', { 
+                    src: nft.image, 
+                    alt: nft.name,
+                    onError: (e) => {
+                      e.target.src = './assets/favicon.ico'; // Fallback to site icon if NFT image is dead
+                    }
+                  }),
                   React.createElement('span', null, nft.name)
                 )
               ))
@@ -498,9 +504,9 @@ function RaffleAppInner() {
         .from('profiles')
         .select('*')
         .eq('id', address)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Supabase Profile Error:", error);
       }
       setUserProfile(data || { id: address, username: '', pfp_url: '' });
