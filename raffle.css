@@ -2394,6 +2394,7 @@
 .header-username {
   font-size: 14px;
   font-weight: 700;
+  color: #fff;
   max-width: 100px;
   white-space: nowrap;
   overflow: hidden;
