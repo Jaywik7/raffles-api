@@ -148,7 +148,11 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
             ownerAddress: publicKey.toBase58(),
             page: 1,
             limit: 1000,
-            displayOptions: { showAttributes: false, showMetadata: true }
+            displayOptions: { 
+              showCollectionMetadata: true,
+              showFungible: false,
+              showNativeBalance: false
+            },
           },
         }),
       });
