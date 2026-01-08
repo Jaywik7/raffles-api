@@ -122,18 +122,22 @@ function CountdownTimer({ endsAt, onEnd }) {
 
 function ProfileModal({ profile, onSave, onClose, isSaving }) {
   const { publicKey } = useWallet();
+  const { connection } = useConnection();
   const [username, setUsername] = useState(profile?.username || '');
   const [pfpUrl, setPfpUrl] = useState(profile?.pfp_url || '');
   const [pfpMint, setPfpMint] = useState(profile?.pfp_mint || '');
   const [nfts, setNfts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   const [view, setView] = useState('main'); // 'main' or 'select-pfp'
 
   const fetchNfts = async () => {
     if (!publicKey) return;
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=ac2b3c74-327a-4090-b0f7-317731507008`, {
+      const rpcUrl = connection.rpcEndpoint;
+      const response = await fetch(rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,11 +152,30 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
           },
         }),
       });
-      const { result } = await response.json();
-      const items = result.items.filter(item => item.content?.links?.image);
+      const data = await response.json();
+      if (data.error) {
+        console.error("RPC API Error:", data.error);
+        setErrorMsg("Failed to fetch assets from RPC.");
+        return;
+      }
+      const result = data.result;
+      if (!result || !result.items) {
+        console.warn("RPC returned no items or result is missing");
+        setNfts([]);
+        return;
+      }
+      const items = result.items.filter(item => {
+        const image = item.content?.links?.image || item.content?.metadata?.image;
+        return !!image;
+      }).map(item => ({
+        id: item.id,
+        image: item.content?.links?.image || item.content?.metadata?.image,
+        name: item.content?.metadata?.name || 'Unnamed NFT'
+      }));
       setNfts(items);
     } catch (e) {
       console.error("Error fetching NFTs:", e);
+      setErrorMsg("An error occurred while loading your NFTs.");
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +202,7 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
                 className: 'profile-pfp-display',
                 onClick: () => setView('select-pfp')
               },
-                pfpUrl ? React.createElement('img', { src: pfpUrl, alt: 'PFP' }) : React.createElement('div', { className: 'pfp-placeholder' }, '?'),
+                pfpUrl ? React.createElement('img', { src: pfpUrl, alt: 'PFP' }) : React.createElement('div', { className: 'pfp-placeholder' }, '👤'),
                 React.createElement('div', { className: 'pfp-edit-overlay' }, 'Change')
               )
             ),
@@ -203,6 +226,7 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
         ) : (
           React.createElement('div', { className: 'pfp-selector' },
             isLoading ? React.createElement('div', { className: 'modal-loading' }, 'Loading your NFTs...') :
+            errorMsg ? React.createElement('div', { className: 'modal-empty', style: { color: '#ff4d4d' } }, errorMsg) :
             nfts.length === 0 ? React.createElement('div', { className: 'modal-empty' }, 'No NFTs found in your wallet') :
             React.createElement('div', { className: 'nft-list-grid' },
               nfts.map(nft => (
@@ -210,13 +234,13 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
                   key: nft.id,
                   className: `nft-item-select ${pfpMint === nft.id ? 'selected' : ''}`,
                   onClick: () => {
-                    setPfpUrl(nft.content.links.image);
+                    setPfpUrl(nft.image);
                     setPfpMint(nft.id);
                     setView('main');
                   }
                 },
-                  React.createElement('img', { src: nft.content.links.image, alt: nft.content.metadata?.name }),
-                  React.createElement('span', null, nft.content.metadata?.name)
+                  React.createElement('img', { src: nft.image, alt: nft.name }),
+                  React.createElement('span', null, nft.name)
                 )
               ))
             )
