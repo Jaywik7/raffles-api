@@ -127,6 +127,8 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
   const [pfpUrl, setPfpUrl] = useState(profile?.pfp_url || '');
   const [pfpMint, setPfpMint] = useState(profile?.pfp_mint || '');
   const [nfts, setNfts] = useState([]);
+  const [nftCollectionGroups, setNftCollectionGroups] = useState([]);
+  const [selectedCollectionName, setSelectedCollectionName] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [view, setView] = useState('main'); // 'main' or 'select-pfp'
@@ -166,17 +168,53 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
       if (!result || !result.items) {
         console.warn("RPC returned no items or result is missing");
         setNfts([]);
+        setNftCollectionGroups([]);
         return;
       }
-      const items = result.items.filter(item => {
+
+      const processedNfts = result.items.filter(item => {
         const image = item.content?.links?.image || item.content?.metadata?.image;
         return !!image;
-      }).map(item => ({
-        id: item.id,
-        image: item.content?.links?.image || item.content?.metadata?.image,
-        name: item.content?.metadata?.name || 'Unnamed NFT'
-      }));
-      setNfts(items);
+      }).map(item => {
+        const content = item.content || {};
+        const metadata = content.metadata || {};
+        const image = content.links?.image || metadata.image || './assets/favicon.ico';
+        
+        // Collection Name Extraction
+        const groupInfo = item.grouping?.find(g => g.group_key === 'collection');
+        let collectionName = 'Uncategorized';
+        if (metadata.collection) {
+          collectionName = typeof metadata.collection === 'string' ? metadata.collection : (metadata.collection.name || 'Uncategorized');
+        } else if (groupInfo) {
+          collectionName = metadata.name?.split('#')[0]?.trim() || groupInfo.group_value.slice(0, 8) + '...';
+        }
+
+        return {
+          id: item.id,
+          image: image,
+          name: metadata.name || item.id.slice(0, 8),
+          collection: collectionName
+        };
+      });
+
+      // Group by Collection
+      const groups = processedNfts.reduce((acc, nft) => {
+        const key = nft.collection || 'Uncategorized';
+        if (!acc[key]) {
+          acc[key] = {
+            name: key,
+            image: nft.image,
+            count: 0,
+            items: []
+          };
+        }
+        acc[key].items.push(nft);
+        acc[key].count += 1;
+        return acc;
+      }, {});
+
+      setNftCollectionGroups(Object.values(groups).sort((a, b) => b.count - a.count));
+      setNfts(processedNfts);
     } catch (e) {
       console.error("Error fetching NFTs:", e);
       setErrorMsg("An error occurred while loading your NFTs.");
@@ -194,8 +232,20 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
   return React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: onClose },
     React.createElement('div', { className: 'nft-selection-modal', onClick: e => e.stopPropagation() },
       React.createElement('div', { className: 'modal-header' },
-        view === 'select-pfp' && React.createElement('button', { className: 'modal-back-btn', onClick: () => setView('main') }, '←'),
-        React.createElement('h2', null, view === 'main' ? 'Edit Profile' : 'Select PFP'),
+        (view === 'select-pfp' || selectedCollectionName) && React.createElement('button', { 
+          className: 'modal-back-btn', 
+          onClick: () => {
+            if (selectedCollectionName) {
+              setSelectedCollectionName(null);
+            } else {
+              setView('main');
+            }
+          }
+        }, '←'),
+        React.createElement('h2', null, 
+          view === 'main' ? 'Edit Profile' : 
+          (selectedCollectionName || 'Select PFP')
+        ),
         React.createElement('button', { className: 'modal-close', onClick: onClose }, '×')
       ),
       React.createElement('div', { className: 'modal-body' },
@@ -206,7 +256,11 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
                 className: 'profile-pfp-display',
                 onClick: () => setView('select-pfp')
               },
-                pfpUrl ? React.createElement('img', { src: pfpUrl, alt: 'PFP' }) : React.createElement('div', { className: 'pfp-placeholder' }, '👤'),
+                pfpUrl ? React.createElement('img', { 
+                  src: pfpUrl, 
+                  alt: 'PFP',
+                  onError: (e) => { e.target.src = './assets/favicon.ico'; }
+                }) : React.createElement('div', { className: 'pfp-placeholder' }, '👤'),
                 React.createElement('div', { className: 'pfp-edit-overlay' }, 'Change')
               )
             ),
@@ -231,28 +285,51 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
           React.createElement('div', { className: 'pfp-selector' },
             isLoading ? React.createElement('div', { className: 'modal-loading' }, 'Loading your NFTs...') :
             errorMsg ? React.createElement('div', { className: 'modal-empty', style: { color: '#ff4d4d' } }, errorMsg) :
-            nfts.length === 0 ? React.createElement('div', { className: 'modal-empty' }, 'No NFTs found in your wallet') :
-            React.createElement('div', { className: 'nft-list-grid' },
-              nfts.map(nft => (
-                React.createElement('div', {
-                  key: nft.id,
-                  className: `nft-item-select ${pfpMint === nft.id ? 'selected' : ''}`,
-                  onClick: () => {
-                    setPfpUrl(nft.image);
-                    setPfpMint(nft.id);
-                    setView('main');
-                  }
-                },
-                  React.createElement('img', { 
-                    src: nft.image, 
-                    alt: nft.name,
-                    onError: (e) => {
-                      e.target.src = './assets/favicon.ico'; // Fallback to site icon if NFT image is dead
+            nftCollectionGroups.length === 0 ? React.createElement('div', { className: 'modal-empty' }, 'No NFTs found in your wallet') :
+            !selectedCollectionName ? (
+              // Collection Grid
+              React.createElement('div', { className: 'nft-list-grid' },
+                nftCollectionGroups.map(group => (
+                  React.createElement('div', {
+                    key: group.name,
+                    className: 'nft-item-select collection-group-card',
+                    onClick: () => setSelectedCollectionName(group.name)
+                  },
+                    React.createElement('div', { className: 'collection-image-wrap' },
+                      React.createElement('img', { 
+                        src: group.image, 
+                        alt: group.name,
+                        onError: (e) => { e.target.src = './assets/favicon.ico'; }
+                      }),
+                      React.createElement('span', { className: 'collection-count-badge' }, group.count)
+                    ),
+                    React.createElement('span', { className: 'collection-group-name' }, group.name)
+                  )
+                ))
+              )
+            ) : (
+              // NFT Grid for selected collection
+              React.createElement('div', { className: 'nft-list-grid' },
+                nftCollectionGroups.find(g => g.name === selectedCollectionName)?.items.map(nft => (
+                  React.createElement('div', {
+                    key: nft.id,
+                    className: `nft-item-select ${pfpMint === nft.id ? 'selected' : ''}`,
+                    onClick: () => {
+                      setPfpUrl(nft.image);
+                      setPfpMint(nft.id);
+                      setView('main');
+                      setSelectedCollectionName(null);
                     }
-                  }),
-                  React.createElement('span', null, nft.name)
-                )
-              ))
+                  },
+                    React.createElement('img', { 
+                      src: nft.image, 
+                      alt: nft.name,
+                      onError: (e) => { e.target.src = './assets/favicon.ico'; }
+                    }),
+                    React.createElement('span', null, nft.name)
+                  )
+                ))
+              )
             )
           )
         )
