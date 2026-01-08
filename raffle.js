@@ -226,6 +226,77 @@ function ProfileModal({ profile, onSave, onClose, isSaving }) {
     )
   );
 }
+
+function FairnessModal({ raffle, onClose }) {
+  const isPast = raffle.status === 'ended';
+  
+  return React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: onClose },
+    React.createElement('div', { className: 'nft-selection-modal detail-modal', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'modal-header' },
+        React.createElement('h2', null, 'Provably Fair System'),
+        React.createElement('button', { className: 'modal-close', onClick: onClose }, '×')
+      ),
+      React.createElement('div', { className: 'modal-body fairness-body' },
+        React.createElement('div', { className: 'fairness-explainer' },
+          React.createElement('p', null, 'Our provably fair system ensures that every raffle outcome is mathematically verifiable and cannot be manipulated by the platform.'),
+          React.createElement('div', { className: 'fairness-steps' },
+            React.createElement('div', { className: 'fairness-step' },
+              React.createElement('span', { className: 'step-num' }, '1'),
+              React.createElement('div', null,
+                React.createElement('h4', null, 'Server Seed Hash'),
+                React.createElement('p', null, 'Generated before the raffle starts. Since you have the hash, the platform cannot change the secret seed later.')
+              )
+            ),
+            React.createElement('div', { className: 'fairness-step' },
+              React.createElement('span', { className: 'step-num' }, '2'),
+              React.createElement('div', null,
+                React.createElement('h4', null, 'Client Seed'),
+                React.createElement('p', null, 'A random value (like a future blockhash) recorded at the moment of the draw, providing unpredictable randomness.')
+              )
+            ),
+            React.createElement('div', { className: 'fairness-step' },
+              React.createElement('span', { className: 'step-num' }, '3'),
+              React.createElement('div', null,
+                React.createElement('h4', null, 'Verification'),
+                React.createElement('p', null, 'Once ended, the Server Seed is revealed. Anyone can hash the seeds to verify the winner.')
+              )
+            )
+          )
+        ),
+        React.createElement('div', { className: 'fairness-data' },
+          React.createElement('div', { className: 'fairness-row' },
+            React.createElement('label', null, 'Server Hash'),
+            React.createElement('div', { className: 'seed-box' }, raffle.server_hash || 'Not available')
+          ),
+          React.createElement('div', { className: 'fairness-row' },
+            React.createElement('label', null, 'Server Seed'),
+            React.createElement('div', { className: 'seed-box' }, 
+              isPast ? (raffle.server_seed || 'Revealed after draw') : 'Hidden until raffle ends'
+            )
+          ),
+          React.createElement('div', { className: 'fairness-row' },
+            React.createElement('label', null, 'Client Seed'),
+            React.createElement('div', { className: 'seed-box' }, raffle.client_seed || 'Generated at draw')
+          ),
+          React.createElement('div', { className: 'fairness-row' },
+            React.createElement('label', null, 'Nonce'),
+            React.createElement('div', { className: 'seed-box' }, raffle.draw_nonce || '0')
+          )
+        ),
+        isPast && React.createElement('div', { className: 'fairness-verify' },
+          React.createElement('a', { 
+            href: `https://duckduckgo.com/?q=sha256+hash+of+${raffle.server_seed}${raffle.client_seed}${raffle.draw_nonce}`, 
+            target: '_blank', 
+            className: 'raffle-btn-buy',
+            style: { textDecoration: 'none', textAlign: 'center' }
+          }, 'Verify on external tool')
+        )
+      )
+    )
+  );
+}
+
+function WinnerModal({ raffle, onClose }) {
   useEffect(() => {
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
