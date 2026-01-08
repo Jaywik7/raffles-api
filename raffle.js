@@ -466,13 +466,17 @@ function RaffleAppInner() {
 
   const fetchUserProfile = async (address) => {
     try {
+      console.log("Fetching profile for:", address);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', address)
         .single();
       
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error("Supabase Profile Error:", error);
+        if (error.code !== 'PGRST116') throw error;
+      }
       setUserProfile(data || { id: address, username: '', pfp_url: '' });
     } catch (e) {
       console.error("Error fetching profile:", e);
