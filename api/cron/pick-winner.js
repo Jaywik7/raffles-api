@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Connection } from '@solana/web3.js';
 
 // This function will be called by Vercel Cron
 export default async function handler(req, res) {
@@ -10,12 +11,14 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const heliusApiKey = process.env.HELIUS_API_KEY || "ac2b3c74-327a-4090-b0f7-317731507008";
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return res.status(500).json({ success: false, message: 'Missing environment variables' });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`);
 
   try {
     // 1. Find all expired raffles that are still 'active'
@@ -35,9 +38,19 @@ export default async function handler(req, res) {
 
     const results = [];
     for (const raffle of expiredRaffles) {
-      // 2. Trigger the pick_raffle_winner RPC for each
+      // Fetch latest blockhash to use as Client Seed
+      let clientSeed = "MANUAL_DRAW_" + Date.now();
+      try {
+        const { blockhash } = await connection.getLatestBlockhash();
+        clientSeed = blockhash;
+      } catch (bhErr) {
+        console.warn("Failed to fetch blockhash, using timestamp fallback:", bhErr);
+      }
+
+      // 2. Trigger the pick_raffle_winner RPC for each with the blockhash seed
       const { data: winner, error: rpcError } = await supabase.rpc('pick_raffle_winner', { 
-        target_raffle_id: raffle.id 
+        target_raffle_id: raffle.id,
+        provided_client_seed: clientSeed
       });
       
       if (!rpcError && winner) {

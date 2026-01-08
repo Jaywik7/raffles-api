@@ -120,7 +120,112 @@ function CountdownTimer({ endsAt, onEnd }) {
   return React.createElement('span', { className: 'countdown-value' }, timeLeft);
 }
 
-function WinnerModal({ raffle, onClose }) {
+function ProfileModal({ profile, onSave, onClose, isSaving }) {
+  const { publicKey } = useWallet();
+  const [username, setUsername] = useState(profile?.username || '');
+  const [pfpUrl, setPfpUrl] = useState(profile?.pfp_url || '');
+  const [pfpMint, setPfpMint] = useState(profile?.pfp_mint || '');
+  const [nfts, setNfts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [view, setView] = useState('main'); // 'main' or 'select-pfp'
+
+  const fetchNfts = async () => {
+    if (!publicKey) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=ac2b3c74-327a-4090-b0f7-317731507008`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 'my-id',
+          method: 'getAssetsByOwner',
+          params: {
+            ownerAddress: publicKey.toBase58(),
+            page: 1,
+            limit: 1000,
+            displayOptions: { showAttributes: false, showMetadata: true }
+          },
+        }),
+      });
+      const { result } = await response.json();
+      const items = result.items.filter(item => item.content?.links?.image);
+      setNfts(items);
+    } catch (e) {
+      console.error("Error fetching NFTs:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (view === 'select-pfp') {
+      fetchNfts();
+    }
+  }, [view]);
+
+  return React.createElement('div', { className: 'nft-selection-modal-backdrop', onClick: onClose },
+    React.createElement('div', { className: 'nft-selection-modal', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'modal-header' },
+        view === 'select-pfp' && React.createElement('button', { className: 'modal-back-btn', onClick: () => setView('main') }, '←'),
+        React.createElement('h2', null, view === 'main' ? 'Edit Profile' : 'Select PFP'),
+        React.createElement('button', { className: 'modal-close', onClick: onClose }, '×')
+      ),
+      React.createElement('div', { className: 'modal-body' },
+        view === 'main' ? (
+          React.createElement('div', { className: 'profile-edit-form' },
+            React.createElement('div', { className: 'profile-pfp-section' },
+              React.createElement('div', { 
+                className: 'profile-pfp-display',
+                onClick: () => setView('select-pfp')
+              },
+                pfpUrl ? React.createElement('img', { src: pfpUrl, alt: 'PFP' }) : React.createElement('div', { className: 'pfp-placeholder' }, '?'),
+                React.createElement('div', { className: 'pfp-edit-overlay' }, 'Change')
+              )
+            ),
+            React.createElement('div', { className: 'raffle-field', style: { marginBottom: '24px' } },
+              React.createElement('label', null, 'Username'),
+              React.createElement('input', {
+                type: 'text',
+                className: 'raffle-input-dark',
+                placeholder: 'Enter username',
+                value: username,
+                onChange: e => setUsername(e.target.value.slice(0, 20))
+              }),
+              React.createElement('p', { className: 'field-sub' }, 'Maximum 20 characters')
+            ),
+            React.createElement('button', {
+              className: 'raffle-btn-buy large',
+              disabled: isSaving,
+              onClick: () => onSave({ username, pfp_url: pfpUrl, pfp_mint: pfpMint })
+            }, isSaving ? 'Saving...' : 'Save Profile')
+          )
+        ) : (
+          React.createElement('div', { className: 'pfp-selector' },
+            isLoading ? React.createElement('div', { className: 'modal-loading' }, 'Loading your NFTs...') :
+            nfts.length === 0 ? React.createElement('div', { className: 'modal-empty' }, 'No NFTs found in your wallet') :
+            React.createElement('div', { className: 'nft-list-grid' },
+              nfts.map(nft => (
+                React.createElement('div', {
+                  key: nft.id,
+                  className: `nft-item-select ${pfpMint === nft.id ? 'selected' : ''}`,
+                  onClick: () => {
+                    setPfpUrl(nft.content.links.image);
+                    setPfpMint(nft.id);
+                    setView('main');
+                  }
+                },
+                  React.createElement('img', { src: nft.content.links.image, alt: nft.content.metadata?.name }),
+                  React.createElement('span', null, nft.content.metadata?.name)
+                )
+              ))
+            )
+          )
+        )
+      )
+    )
+  );
+}
   useEffect(() => {
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
@@ -274,12 +379,66 @@ function RaffleAppInner() {
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
 
+  // Profile State
+  const [userProfile, setUserProfile] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [showFairnessModal, setShowFairnessModal] = useState(false);
+  const [selectedRaffleForFairness, setSelectedRaffleForFairness] = useState(null);
+
   const notify = (message, type = 'success', persistent = false) => {
     setNotification({ message, type, persistent });
     if (!persistent) {
       setTimeout(() => setNotification(null), 5000);
     }
   };
+
+  const fetchUserProfile = async (address) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', address)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      setUserProfile(data || { id: address, username: '', pfp_url: '' });
+    } catch (e) {
+      console.error("Error fetching profile:", e);
+    }
+  };
+
+  const saveUserProfile = async (profileData) => {
+    if (!publicKey) return;
+    setIsSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: publicKey.toBase58(),
+          ...profileData,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      setUserProfile(prev => ({ ...prev, ...profileData }));
+      notify("Profile updated successfully!");
+      setShowProfileModal(false);
+    } catch (e) {
+      console.error("Error saving profile:", e);
+      notify("Failed to update profile", "error");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    if (publicKey) {
+      fetchUserProfile(publicKey.toBase58());
+    } else {
+      setUserProfile(null);
+    }
+  }, [publicKey]);
 
   // MALLOW PROTOCOL CONSTANTS
   const MALLOW_PROGRAM_ID = useMemo(() => new PublicKey('ComputeBudget111111111111111111111111111111'), []); 
@@ -478,8 +637,12 @@ function RaffleAppInner() {
       if (!expiredError && expiredRaffles.length > 0) {
         console.log(`Found ${expiredRaffles.length} expired raffles. Drawing winners...`);
         for (const r of expiredRaffles) {
-          // Call our SQL function to pick a winner
-          const { data: winnerAddress } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: r.id });
+          // Call our SQL function to pick a winner with a blockhash as client seed
+          const { blockhash } = await connection.getLatestBlockhash();
+          const { data: winnerAddress } = await supabase.rpc('pick_raffle_winner', { 
+            target_raffle_id: r.id,
+            provided_client_seed: blockhash
+          });
           
           if (winnerAddress) {
             // Fetch full raffle data and entry count for Discord
@@ -543,7 +706,11 @@ function RaffleAppInner() {
           symbol: r.prize_token_symbol,
           amount: r.prize_token_amount,
           mint: r.prize_token_mint
-        } : null
+        } : null,
+        server_seed: r.server_seed,
+        server_hash: r.server_hash,
+        client_seed: r.client_seed,
+        draw_nonce: r.draw_nonce
       }));
 
       setActiveRaffles(transformed.filter(r => r.status === 'active' && new Date(r.endsAt) > new Date()));
@@ -1141,6 +1308,13 @@ function RaffleAppInner() {
 
       console.log(`Creating raffle on Mallow Protocol. Fee: ${totalCreationFee} SOL`);
 
+      // Generate Fairness Seeds
+      const serverSeed = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const serverHashBuffer = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(serverSeed));
+      const serverHash = Array.from(new Uint8Array(serverHashBuffer))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+
       // 2. Prepare Transaction (Placeholder for smart contract call)
       // In a real implementation, we would call the 'createRaffle' instruction on the Mallow Program
       const transaction = new Transaction().add(
@@ -1177,7 +1351,9 @@ function RaffleAppInner() {
           payment_mint: paymentCurrency === 'NTZ' ? NTZ_MINT.toBase58() : null,
           payment_symbol: paymentCurrency,
           floor_price: parseFloat(floorPrice) || null,
-          status: 'active'
+          status: 'active',
+          server_seed: serverSeed,
+          server_hash: serverHash
         }])
         .select();
 
@@ -1486,7 +1662,11 @@ function RaffleAppInner() {
 
     notify('Ending raffle and picking winner... 🎲', 'info', true);
     try {
-      const { data: winnerAddress, error } = await supabase.rpc('pick_raffle_winner', { target_raffle_id: raffle.id });
+      const { blockhash } = await connection.getLatestBlockhash();
+      const { data: winnerAddress, error } = await supabase.rpc('pick_raffle_winner', { 
+        target_raffle_id: raffle.id,
+        provided_client_seed: blockhash
+      });
       if (error) throw error;
       
       // Fetch participant count for Discord notification
@@ -1655,7 +1835,11 @@ function RaffleAppInner() {
             React.createElement('button', { 
               className: `modal-tab ${modalTab === 'participants' ? 'active' : ''}`,
               onClick: () => setModalTab('participants')
-            }, 'Participants')
+            }, 'Participants'),
+            React.createElement('button', { 
+              className: `modal-tab ${modalTab === 'fairness' ? 'active' : ''}`,
+              onClick: () => setModalTab('fairness')
+            }, '⚖️ Fairness')
           ),
           React.createElement('button', { className: 'modal-close', onClick: () => setSelectedRaffleDetails(null) }, '×')
         ),
@@ -1782,7 +1966,7 @@ function RaffleAppInner() {
                 )
               )
             )
-          ) : (
+          ) : modalTab === 'participants' ? (
             React.createElement('div', { className: 'raffle-participants-list' },
               isLoadingParticipants ? (
                 React.createElement('div', { className: 'modal-loading' }, 'Loading participants...')
@@ -1805,6 +1989,27 @@ function RaffleAppInner() {
                 )
               ) : (
                 React.createElement('div', { className: 'modal-empty' }, 'No participants yet. Be the first to enter!')
+              )
+            )
+          ) : (
+            // Fairness Tab Content
+            React.createElement('div', { className: 'fairness-tab-content' },
+              React.createElement('div', { className: 'fairness-explainer' },
+                React.createElement('p', null, 'This raffle uses a Provably Fair system. The outcome is generated by hashing the Server Seed and Client Seed together.'),
+                React.createElement('div', { className: 'fairness-data' },
+                  React.createElement('div', { className: 'fairness-row' },
+                    React.createElement('label', null, 'Server Hash'),
+                    React.createElement('div', { className: 'seed-box' }, selectedRaffleDetails.server_hash || 'Pending...')
+                  ),
+                  React.createElement('div', { className: 'fairness-row' },
+                    React.createElement('label', null, 'Server Seed'),
+                    React.createElement('div', { className: 'seed-box' }, selectedRaffleDetails.status === 'ended' ? (selectedRaffleDetails.server_seed || 'Revealed') : 'Hidden until end')
+                  ),
+                  React.createElement('div', { className: 'fairness-row' },
+                    React.createElement('label', null, 'Client Seed (BlockHash)'),
+                    React.createElement('div', { className: 'seed-box' }, selectedRaffleDetails.client_seed || 'Generated at draw')
+                  )
+                )
               )
             )
           )
@@ -1845,12 +2050,28 @@ function RaffleAppInner() {
         )
       )
     ),
+    // Profile Modal
+    showProfileModal && React.createElement(ProfileModal, {
+      profile: userProfile,
+      onSave: saveUserProfile,
+      onClose: () => setShowProfileModal(false),
+      isSaving: isSavingProfile
+    }),
+    // Fairness Modal
+    showFairnessModal && selectedRaffleForFairness && React.createElement(FairnessModal, {
+      raffle: selectedRaffleForFairness,
+      onClose: () => {
+        setShowFairnessModal(false);
+        setSelectedRaffleForFairness(null);
+      }
+    }),
     React.createElement(StaggeredMenu, {
       className: scrolled ? 'is-scrolled' : '',
       position: 'right',
       colors: ['#FFC0F5', '#00E3FA', '#5CFCA9', '#FFD55F', '#FF9161'],
       items: [
         { label: 'Home', ariaLabel: 'Go to home', link: 'https://microsnft.xyz' },
+        { label: 'Profile', ariaLabel: 'Edit Profile', link: '#', onClick: (e) => { e.preventDefault(); setShowProfileModal(true); } },
         { label: 'Mint', ariaLabel: 'Go to mint page', link: 'https://www.launchmynft.io/collections/3M2xsZtaBTScbuWBxYQ7jjeV6SinvLLeaxFcQCrH1oK3/R1YohhQEJcsVlXBuOvwq' },
         { label: 'Gallery', ariaLabel: 'View gallery', link: 'https://microsnft.xyz/gallery.html' },
         { label: 'About Us', ariaLabel: 'Learn about us', link: 'https://microsnft.xyz/#about' }
@@ -1870,6 +2091,13 @@ function RaffleAppInner() {
     }),
     React.createElement('div', { className: 'raffle-fixed-header' },
       React.createElement('div', { className: 'raffle-header-actions' },
+        publicKey && React.createElement('div', { 
+          className: 'header-profile-btn',
+          onClick: () => setShowProfileModal(true)
+        },
+          userProfile?.pfp_url ? React.createElement('img', { src: userProfile.pfp_url, alt: 'Profile' }) : React.createElement('div', { className: 'profile-placeholder' }, '👤'),
+          userProfile?.username && React.createElement('span', { className: 'header-username' }, userProfile.username)
+        ),
         React.createElement(WalletMultiButton, { className: 'raffle-wallet-button' })
       )
     ),
@@ -1975,6 +2203,14 @@ function RaffleAppInner() {
                             handleDeleteRaffle(raffle.id);
                           }
                         }, '🗑️'),
+                        React.createElement('button', { 
+                          title: 'Provably Fair Info',
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            setSelectedRaffleForFairness(raffle);
+                            setShowFairnessModal(true);
+                          }
+                        }, '⚖️'),
                         React.createElement('button', { 
                           title: 'Share on X',
                           onClick: (e) => {
