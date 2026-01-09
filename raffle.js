@@ -480,7 +480,12 @@ function LiveActivityFeed({ activities }) {
       
       setDisplayActivities(prev => {
         const combined = [...prev, ...itemsToAdd];
-        return combined.slice(-4); // Keep up to 4 so we can animate the top one out
+        // On mobile, we only want to show the VERY LATEST one at a time to prevent UI jumping
+        const isMobile = window.innerWidth <= 640;
+        if (isMobile) {
+          return itemsToAdd.slice(-1); 
+        }
+        return combined.slice(-3); // Desktop can handle a stack of 3
       });
 
       // Remove each item after 5 seconds
@@ -494,15 +499,11 @@ function LiveActivityFeed({ activities }) {
 
   if (displayActivities.length === 0) return null;
 
-  // Only the last 3 are "active", any beyond that (the oldest) is "exiting"
-  const activeLimit = 3;
-
   return React.createElement('div', { className: 'live-activity-toast-container' },
-    displayActivities.map((act, index) => {
-      const isExiting = (displayActivities.length > activeLimit && index === 0);
+    displayActivities.map((act) => {
       return React.createElement('div', { 
         key: act.id, 
-        className: `activity-toast ${isExiting ? 'exiting' : ''}` 
+        className: 'activity-toast' 
       },
         React.createElement('div', { className: 'activity-header' },
           React.createElement('span', { className: 'activity-dot' }),

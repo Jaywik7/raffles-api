@@ -1695,25 +1695,19 @@
     bottom: auto;
     right: auto;
     width: 100%;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 10px 0 20px 0;
+    display: flex;
+    justify-content: center; /* Center the notification */
+    padding: 10px 0;
     margin: 10px 0;
     pointer-events: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
     z-index: 50;
-  }
-
-  .live-activity-toast-container::-webkit-scrollbar {
-    display: none;
+    min-height: 80px; /* Reserve space so UI doesn't jump */
   }
 
   .activity-toast {
-    min-width: 280px !important;
-    max-width: 280px !important;
-    margin: 0 8px !important;
+    width: 90% !important; /* Take up most of the width */
+    max-width: 320px !important;
+    margin: 0 auto !important;
     flex-shrink: 0;
     animation: slideInRightMobile 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards !important;
   }
