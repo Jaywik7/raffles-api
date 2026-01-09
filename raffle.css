@@ -2427,6 +2427,19 @@
   gap: 24px;
 }
 
+.profile-edit-form .raffle-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-edit-form .raffle-input-dark {
+  text-align: center;
+  max-width: 300px;
+}
+
 .profile-pfp-section {
   display: flex;
   flex-direction: column;
