@@ -452,7 +452,19 @@ function WinnerModal({ raffle, onClose }) {
           className: 'raffle-btn-buy large',
           style: { textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
           onClick: onClose
-        }, 'Claim Your Prize')
+        }, 'Claim Your Prize'),
+        React.createElement('button', {
+          className: 'raffle-btn-buy large',
+          style: { marginTop: '12px', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
+          onClick: () => {
+            const shareText = `I just won a ${raffle.name} on @MicrosNFT! 🏆💎\n\nJoin the raffles at:`;
+            const shareUrl = `https://raffles.microsnft.xyz/`;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+          }
+        }, 
+          React.createElement('span', { style: { fontSize: '18px' } }, '𝕏'),
+          'Share My Win'
+        )
       )
     )
   );
@@ -2400,9 +2412,9 @@ function RaffleAppInner() {
                           title: 'Share on X',
                           onClick: (e) => {
                             e.stopPropagation();
-                            const text = encodeURIComponent(`Check out this raffle for ${raffle.name} on Micros!`);
-                            const url = encodeURIComponent(window.location.href);
-                            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+                            const shareText = `Join the Micros Raffle! Win exclusive NFTs and tokens on Solana. 🎰✨\n\n@MicrosNFT #Micros #Solana #NFTs`;
+                            const shareUrl = `https://raffles.microsnft.xyz/`;
+                            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                           }
                         }, '𝕏'),
                         React.createElement('button', { 
