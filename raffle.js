@@ -457,7 +457,7 @@ function WinnerModal({ raffle, onClose }) {
           className: 'raffle-btn-buy large',
           style: { marginTop: '12px', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
           onClick: () => {
-            const shareText = `I just won a ${raffle.name} on @MicrosNFT! 🏆💎\n\nJoin the raffles at:`;
+            const shareText = `I just won a ${raffle.name} on @MicrosNFT! 🏆💎\n\nFeeling lucky? Join the raffles now! 🎰✨`;
             const shareUrl = `https://raffles.microsnft.xyz/`;
             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
           }
@@ -2413,7 +2413,7 @@ function RaffleAppInner() {
                           onClick: (e) => {
                             e.stopPropagation();
                             // Updated to include the raffle name and a more inviting message
-                            const shareText = `I'm eyeing the ${raffle.name} on @MicrosNFT Raffle Platform! 🎟️ ✨\n\nJoin the raffle now for a chance to win. Don't miss out!`;
+                            const shareText = `I'm eyeing the ${raffle.name} on @MicrosNFT Raffle Platform! 🎟️✨\n\nJoin the raffle now for a chance to win. Don't miss out!`;
                             const shareUrl = `https://raffles.microsnft.xyz/`;
                             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                           }
