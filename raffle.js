@@ -2288,7 +2288,6 @@ function RaffleAppInner() {
     React.createElement('main', { className: `raffle-site ${isAuthorizedCreator ? 'is-authorized' : ''}` },
       React.createElement(GalaxyBackground, null),
       React.createElement('div', { className: 'raffle-container' },
-        React.createElement(LiveActivityFeed, { activities: liveActivity }),
         React.createElement('header', { className: 'raffle-header' },
           React.createElement('nav', { className: 'raffle-nav' },
             activeTab === 'Create' ? (
@@ -2324,6 +2323,7 @@ function RaffleAppInner() {
             )
           )
         ),
+        React.createElement(LiveActivityFeed, { activities: liveActivity }),
         activeTab === 'Active Raffles' ? (
           React.createElement('div', { className: 'raffle-active-list' },
             React.createElement('div', { className: 'section-header' },

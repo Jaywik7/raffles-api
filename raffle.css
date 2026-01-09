@@ -1689,6 +1689,36 @@
   pointer-events: none;
 }
 
+@media (max-width: 640px) {
+  .live-activity-toast-container {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 0 20px 0;
+    margin: 10px 0;
+    pointer-events: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    z-index: 50;
+  }
+
+  .live-activity-toast-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .activity-toast {
+    min-width: 280px !important;
+    max-width: 280px !important;
+    margin: 0 8px !important;
+    flex-shrink: 0;
+    animation: slideInRightMobile 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards !important;
+  }
+}
+
 .activity-toast {
   background: rgba(15, 20, 35, 0.9);
   backdrop-filter: blur(12px);
@@ -1702,6 +1732,17 @@
   transition: all 0.5s ease;
   overflow: hidden;
   max-height: 100px;
+}
+
+@keyframes slideInRightMobile {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .activity-toast.exiting {
