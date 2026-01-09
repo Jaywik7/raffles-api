@@ -2413,7 +2413,7 @@ function RaffleAppInner() {
                           onClick: (e) => {
                             e.stopPropagation();
                             // Updated to include the raffle name and a more inviting message
-                            const shareText = `I'm eyeing the ${raffle.name} on @MicrosNFT! 🎰✨\n\nJoin the raffle now for a chance to win. Don't miss out! #Micros #Solana #NFTs`;
+                            const shareText = `I'm eyeing the ${raffle.name} on @MicrosNFT Raffle Platform! 🎟️ ✨\n\nJoin the raffle now for a chance to win. Don't miss out!`;
                             const shareUrl = `https://raffles.microsnft.xyz/`;
                             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                           }
