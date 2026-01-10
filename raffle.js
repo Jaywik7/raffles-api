@@ -2097,7 +2097,7 @@ function RaffleAppInner() {
                   selectedRaffleDetails.floorPrice && React.createElement('div', { className: 'detail-stat-item' },
                     React.createElement('label', null, 'Floor Price'),
                     React.createElement('span', { style: { color: '#FFC0F5' } }, 
-                      selectedRaffleDetails.floorPrice < 0.001 ? '< 0.001' : selectedRaffleDetails.floorPrice, 
+                      selectedRaffleDetails.floorPrice < 0.001 ? '< 0.001' : selectedRaffleDetails.floorPrice.toFixed(3), 
                       ' SOL'
                     )
                   )
@@ -2441,7 +2441,7 @@ function RaffleAppInner() {
                         ),
                         raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5' } }, 
                           React.createElement('strong', null, 'Floor Price: '),
-                          raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice, ' SOL'
+                          raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice.toFixed(3), ' SOL'
                         )
                       ),
                       raffle.limitPerWallet && React.createElement('div', { className: 'raffle-item-limit-info' },
@@ -2694,7 +2694,7 @@ function RaffleAppInner() {
                             ),
                             raffle.floorPrice && React.createElement('span', { className: 'floor-price-info', style: { color: '#FFC0F5' } }, 
                               React.createElement('strong', null, 'Floor Price: '),
-                              raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice, ' SOL'
+                              raffle.floorPrice < 0.001 ? '< 0.001' : raffle.floorPrice.toFixed(3), ' SOL'
                             )
                           ),
                           React.createElement('div', { className: 'raffle-item-times' },
