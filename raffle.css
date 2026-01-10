@@ -1249,8 +1249,10 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: none;
-  background: rgba(0,0,0,0.6);
+  border: 1px solid transparent;
+  background: 
+    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)) padding-box,
+    linear-gradient(90deg, #FFC0F5, #00E3FA, #5CFCA9, #FFD55F, #FF9161) border-box;
   color: #fff;
   display: flex;
   align-items: center;
@@ -1263,7 +1265,9 @@
 
 .raffle-card-share button:hover {
   transform: scale(1.1);
-  background: rgba(255, 255, 255, 0.2);
+  background: 
+    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)) padding-box,
+    linear-gradient(90deg, #FFC0F5, #00E3FA, #5CFCA9, #FFD55F, #FF9161) border-box;
 }
 
 /* Empty States */
